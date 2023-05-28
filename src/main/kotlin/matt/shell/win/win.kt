@@ -12,7 +12,7 @@ import matt.shell.shell
 class WindowsGitBashReturner(private val verbosity: ShellVerbosity, val logger: Logger = DefaultLogger):
     Shell<String> {
   override val FilePath.pathOp get() = NEW_MAC.replaceFileSeparators(filePath)
-  override fun sendCommand(vararg args: Any): String {
+  override fun sendCommand(vararg args: String): String {
 	return shell(*wrapWindowsBashCmd(*(args.strings())), verbosity = verbosity, logger = logger)
   }
 }

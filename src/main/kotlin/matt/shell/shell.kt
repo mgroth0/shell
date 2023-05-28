@@ -1,12 +1,15 @@
 package matt.shell
 
+import kotlinx.serialization.Serializable
 import matt.lang.go
 import matt.log.DefaultLogger
 import matt.log.SystemOutLogger
+import matt.log.warn.warn
 import matt.model.data.file.FilePath
 import matt.model.data.file.IDFile
 import matt.model.data.file.IDFolder
 import matt.model.op.prints.Prints
+import matt.prim.str.joinWithSpaces
 import matt.prim.str.strings
 import matt.service.MattService
 import matt.shell.PrintInSeq.CHARS
@@ -24,10 +27,27 @@ import matt.shell.report.ShellResult
 annotation class ShellDSL
 
 @ShellDSL
-interface Shell<R : Any?> : MattService {
-    fun sendCommand(vararg args: Any): R
+interface Commandable<R> {
+    fun sendCommand(vararg args: String): R
+    fun sendCommand(command: Command): R {
+        return sendCommand(*command.commands.toTypedArray())
+    }
+}
+
+@ShellDSL
+interface Shell<R : Any?> : MattService, Commandable<R> {
     val FilePath.pathOp: String get() = filePath
 }
+
+
+//interface ShellDomain<R> : Shell<R> {
+//    val engine: Shell<R>
+//    override fun sendCommand(vararg args: Any): R {
+//        return engine.sendCommand(args)
+//    }
+//}
+//
+//data class NonSpecificShellDomain<R>(override val engine: Shell<R>) : ShellDomain<R>
 
 
 interface ConfigurableWorkingDir<T> {
@@ -66,7 +86,6 @@ interface ShellConfigurator<T : ShellConfigurator<T>> : ConfigurableWorkingDir<T
 }
 
 interface ConfigurableShell<R, T : ConfigurableShell<R, T>> : Shell<R>, ShellConfigurator<T>
-
 
 
 class ShellResultHandler<S : ShellResult>(
@@ -197,7 +216,7 @@ data class ExecReturner(
     override fun doNotPrintCommand(op: ExecReturner.() -> Unit) =
         copy(verbosity = verbosity.copy(doNotPrintArgs = true)).apply(op)
 
-    override fun sendCommand(vararg args: Any): String {
+    override fun sendCommand(vararg args: String): String {
         return shell(
             *(args.strings()),
             verbosity = verbosity,
@@ -210,11 +229,23 @@ data class ExecReturner(
 }
 
 
+interface UnControlledCommand<R>
+interface ShellProgram<R> : UnControlledCommand<R>, Commandable<R> {
+    override fun sendCommand(vararg args: String): R
+}
 
+class SimpleShellProgram<R>(val shell: Commandable<R>, val program: String) : ShellProgram<R> {
+    override fun sendCommand(vararg args: String): R {
+        return shell.sendCommand(program, *args)
+    }
+}
 
-interface ControlledCommand<R>
-interface Command<R> : ControlledCommand<R> {
-    fun sendCommand(vararg args: String): R
+abstract class ControlledShellProgram<R>(private val program: ShellProgram<R>) {
+    constructor(program: String, shell: Commandable<R>) : this(SimpleShellProgram(shell = shell, program = program))
+
+    protected fun sendCommand(vararg args: String): R {
+        return program.sendCommand(*args)
+    }
 }
 
 
@@ -259,10 +290,6 @@ fun shell(
 ).run().output
 
 
-
-
-
-
 fun streamingMemorySafeShells(
     verbosity: ShellVerbosity = Companion.SILENT,
     workingDir: IDFolder? = null,
@@ -292,9 +319,6 @@ fun streamingMemorySafeShell(
     logger = logger,
     resultHandler = resultHandler
 ).run()
-
-
-
 
 
 abstract class ShellRunner<S : ShellResult>(
@@ -389,7 +413,6 @@ class FullResultShellRunner(
 }
 
 
-
 data class ExecStreamer(
     private val verbosity: ShellVerbosity,
     private val workingDir: IDFile? = null,
@@ -427,7 +450,7 @@ data class ExecStreamer(
     override fun doNotPrintCommand(op: ExecStreamer.() -> Unit) =
         copy(verbosity = verbosity.copy(doNotPrintArgs = true)).apply(op)
 
-    override fun sendCommand(vararg args: Any): ShellResult {
+    override fun sendCommand(vararg args: String): ShellResult {
         return streamingMemorySafeShell(
             *(args.strings()),
             verbosity = verbosity,
@@ -439,3 +462,28 @@ data class ExecStreamer(
     }
 }
 
+
+object CommandReturner : Shell<Command> {
+    override fun sendCommand(vararg args: String) = Command(args.map { it.toString() })
+}
+
+
+@Serializable
+/*value class here would be ideal but this failed with https://youtrack.jetbrains.com/issue/KT-57647/Serialization-IllegalAccessError-Update-to-static-final-field-caused-by-serializable-value-class?s=update-to-static-final-field-attempted-from-a-different-method-constructor-impl-than-the-initializer-method-clinit-when*/
+/*@JvmInline*/
+data /*value*/ class Command(val commands: List<String>) {
+
+    fun rawWithNoEscaping() = commands.joinWithSpaces()
+
+    override fun toString(): String {
+        warn("don't use vague toString()")
+        return rawWithNoEscaping()
+    }
+
+    fun asArray() = commands.toTypedArray()
+
+    infix fun pipedTo(consumer: Command) = Command(commands + "|" + consumer.commands)
+
+    infix fun pipedToFile(file: FilePath) = Command(commands + ">" + file.filePath)
+
+}

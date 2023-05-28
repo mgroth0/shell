@@ -17,6 +17,6 @@ fun <R> Shell<R>.kill(
     sendCommand(
         "kill",
         *opt(signal) { "-${name}" },
-        pid.id
+        pid.id.toString()
     )
 }
