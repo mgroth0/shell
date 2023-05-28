@@ -85,6 +85,21 @@ interface ShellConfigurator<T : ShellConfigurator<T>> : ConfigurableWorkingDir<T
     fun doNotPrintCommand(op: T.() -> Unit = {}): T
 }
 
+fun <T : ShellConfigurator<T>> ShellConfigurator<T>.withEnv(
+    vararg pairs: Pair<String, String>,
+    op: T.() -> Unit = {}
+) = withEnv(
+    pairs.toMap(), op
+)
+
+fun <T : ShellConfigurator<T>> ShellConfigurator<T>.withUpdatedEnv(
+    vararg pairs: Pair<String, String>,
+    op: T.() -> Unit = {}
+) = withUpdatedEnv(
+    pairs.toMap(), op
+)
+
+
 interface ConfigurableShell<R, T : ConfigurableShell<R, T>> : Shell<R>, ShellConfigurator<T>
 
 
