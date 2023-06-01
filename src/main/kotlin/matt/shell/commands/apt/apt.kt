@@ -6,9 +6,12 @@ import matt.shell.Shell
 import matt.shell.commands.apt.aptget.AptGet.Companion.DEFAULT_AUTO_CONFIRM
 import matt.shell.commands.apt.aptget.AptGet.Companion.DEFAULT_AUTO_REMOVE
 
+interface LinuxPackageManager
+interface AptLike: LinuxPackageManager
+
 val <R> Shell<R>.apt get() = Apt(this)
 
-class Apt<R>(shell: Shell<R>) : ControlledShellProgram<R>(program = "apt", shell = shell) {
+class Apt<R>(shell: Shell<R>) : ControlledShellProgram<R>(program = "apt", shell = shell), AptLike {
     fun update() = sendCommand("update")
     fun install(
         vararg packages: String,

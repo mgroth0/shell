@@ -4,14 +4,15 @@ import matt.lang.If
 import matt.log.warn.warn
 import matt.shell.ControlledShellProgram
 import matt.shell.Shell
+import matt.shell.commands.apt.AptLike
 
 val <R> Shell<R>.aptGet get() = AptGet(this)
 
-class AptGet<R>(shell: Shell<R>) : ControlledShellProgram<R>(shell = shell, program = "apt-get") {
+class AptGet<R>(shell: Shell<R>) : ControlledShellProgram<R>(shell = shell, program = "apt-get"), AptLike {
 
     companion object {
-        internal val DEFAULT_AUTO_CONFIRM = false
-        internal val DEFAULT_AUTO_REMOVE = false
+        const val DEFAULT_AUTO_CONFIRM = false
+        internal const val DEFAULT_AUTO_REMOVE = false
     }
 
     fun update() = sendCommand("update")
