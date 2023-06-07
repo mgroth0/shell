@@ -185,11 +185,19 @@ class DefaultShellExecutor(
             args = args,
             env = env
         )
-        return p.await(
-            verbosity = verbosity,
-            logger = logger,
-            saveOutput = saveOutput
-        )
+        return try {
+             p.await(
+                verbosity = verbosity,
+                logger = logger,
+                saveOutput = saveOutput
+            )
+        } finally {
+            p.descendants().forEachOrdered {
+                it.destroyForcibly()
+            }
+            p.destroyForcibly()
+        }
+
     }
 }
 
