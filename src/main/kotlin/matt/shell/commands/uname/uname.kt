@@ -1,6 +1,7 @@
 package matt.shell.commands.uname
 
-import matt.lang.os
+import matt.lang.platform.OS
+import matt.lang.platform.Windows
 import matt.shell.Shell
 import matt.shell.win.WINDOWS_CMD_BASH_PREFIX
 import kotlin.io.path.Path
@@ -13,13 +14,13 @@ fun Shell<String>.unameForThisRuntime(): String {
 }
 
 private fun correctUnameCommandLineForThisRuntime(): List<String> {
-    val commandLine = if ("Windows" in os) listOf(*WINDOWS_CMD_BASH_PREFIX, correctUnamePathForThisRuntime())
+    val commandLine = if (OS == Windows) listOf(*WINDOWS_CMD_BASH_PREFIX, correctUnamePathForThisRuntime())
     else listOf(correctUnamePathForThisRuntime())
     return commandLine + "-m"
 }
 
 private fun correctUnamePathForThisRuntime(): String {
-    return if ("Windows" in os) "/usr/bin/uname" else listOf(
+    return if (OS == Windows) "/usr/bin/uname" else listOf(
         "/usr/bin/uname", "/bin/uname" /*vagrant, singularity*/
     ).first { Path(it).exists() }
 }

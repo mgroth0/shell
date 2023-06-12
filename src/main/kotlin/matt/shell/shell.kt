@@ -3,6 +3,7 @@ package matt.shell
 import kotlinx.serialization.Serializable
 import matt.lang.go
 import matt.log.DefaultLogger
+import matt.log.SystemErrLogger
 import matt.log.SystemOutLogger
 import matt.log.warn.warn
 import matt.model.data.file.FilePath
@@ -15,6 +16,8 @@ import matt.service.MattService
 import matt.shell.PrintInSeq.CHARS
 import matt.shell.PrintInSeq.LINES
 import matt.shell.PrintInSeq.NO
+import matt.shell.ShellProgramPathContext.HomeBrew
+import matt.shell.ShellProgramPathContext.InPath
 import matt.shell.ShellVerbosity.Companion
 import matt.shell.proc.await
 import matt.shell.proc.proc
@@ -37,8 +40,16 @@ interface Commandable<R> {
 @ShellDSL
 interface Shell<R : Any?> : MattService, Commandable<R> {
     val FilePath.pathOp: String get() = filePath
+    val programPathContext: ShellProgramPathContext
 }
 
+enum class ShellProgramPathContext {
+    InPath, HomeBrew
+}
+
+val DEFAULT_MAC_PROGRAM_PATH_CONTEXT = HomeBrew
+val DEFAULT_LINUX_PROGRAM_PATH_CONTEXT = InPath
+val DEFAULT_WINDOWS_PROGRAM_PATH_CONTEXT = InPath
 
 //interface ShellDomain<R> : Shell<R> {
 //    val engine: Shell<R>
@@ -153,11 +164,12 @@ fun interface ShellExecutor {
 
 fun interface ShellExecutorFactory {
     companion object {
-        val DEFAULT = ShellExecutorFactory { saveOutput, verbosity, logger ->
+        val DEFAULT = ShellExecutorFactory { saveOutput, verbosity, outLogger,errLogger ->
             DefaultShellExecutor(
                 saveOutput = saveOutput,
                 verbosity = verbosity,
-                logger = logger
+                outLogger = outLogger,
+                errLogger = errLogger
             )
         }
     }
@@ -165,7 +177,8 @@ fun interface ShellExecutorFactory {
     fun executor(
         saveOutput: Boolean,
         verbosity: ShellVerbosity,
-        logger: Prints
+        outLogger: Prints,
+        errLogger: Prints
     ): ShellExecutor
 }
 
@@ -173,7 +186,8 @@ fun interface ShellExecutorFactory {
 class DefaultShellExecutor(
     private val saveOutput: Boolean,
     private val verbosity: ShellVerbosity,
-    private val logger: Prints
+    private val outLogger: Prints,
+    private val errLogger: Prints
 ) : ShellExecutor {
     override fun execute(
         workingDir: IDFile?,
@@ -186,9 +200,10 @@ class DefaultShellExecutor(
             env = env
         )
         return try {
-             p.await(
+            p.await(
                 verbosity = verbosity,
-                logger = logger,
+                outLogger = outLogger,
+                errLogger = errLogger,
                 saveOutput = saveOutput
             )
         } finally {
@@ -203,11 +218,13 @@ class DefaultShellExecutor(
 
 
 data class ExecReturner(
+    override val programPathContext: ShellProgramPathContext = DEFAULT_MAC_PROGRAM_PATH_CONTEXT,
     private val verbosity: ShellVerbosity,
     private val workingDir: IDFile? = null,
     private val env: Map<String, String> = mapOf(),
-    private val logger: Prints = SystemOutLogger.apply { includeTimeInfo = false },
-    private val resultHandler: ShellResultHandler<ShellFullResult>? = null
+    private val outLogger: Prints = SystemOutLogger.apply { includeTimeInfo = false },
+    private val errLogger: Prints = SystemErrLogger.apply { includeTimeInfo = false },
+    private val resultHandler: ShellResultHandler<ShellFullResult>? = null,
 ) : DirectableShell<String, ExecReturner>, ConfigurableShell<String, ExecReturner> {
     companion object {
         val SILENT by lazy { ExecReturner(verbosity = ShellVerbosity.SILENT) }
@@ -243,7 +260,8 @@ data class ExecReturner(
         return shell(
             *(args.strings()),
             verbosity = verbosity,
-            logger = logger,
+            outLogger = outLogger,
+            errLogger = errLogger,
             resultHandler = resultHandler,
             workingDir = workingDir,
             env = env,
@@ -299,7 +317,8 @@ fun shell(
     workingDir: IDFile? = null,
     env: Map<String, String> = mapOf(),
     verbosity: ShellVerbosity = Companion.DEFAULT,
-    logger: Prints = DefaultLogger,
+    outLogger: Prints = DefaultLogger,
+    errLogger: Prints = DefaultLogger,
     executorFactory: ShellExecutorFactory = ShellExecutorFactory.DEFAULT,
     resultHandler: ShellResultHandler<ShellFullResult>? = null
 ) = FullResultShellRunner(
@@ -307,7 +326,8 @@ fun shell(
     workingDir = workingDir,
     env = env,
     verbosity = verbosity,
-    logger = logger,
+    outLogger = outLogger,
+    errLogger = errLogger,
     resultHandler = resultHandler,
     executorFactory = executorFactory
 ).run().output
@@ -349,26 +369,28 @@ abstract class ShellRunner<S : ShellResult>(
     private val workingDir: IDFile? = null,
     private val env: Map<String, String> = mapOf(),
     private val verbosity: ShellVerbosity = Companion.DEFAULT,
-    private val logger: Prints = DefaultLogger,
+    private val outLogger: Prints = DefaultLogger,
+    private val errLogger: Prints = DefaultLogger,
     private val executorFactory: ShellExecutorFactory = ShellExecutorFactory.DEFAULT,
     private val resultHandler: ShellResultHandler<S>? = null
 ) {
     protected abstract val saveOutput: Boolean
     fun run(): S {
         if (verbosity.printRunning) {
-            if (verbosity.doNotPrintArgs) logger.println("running command (hidden args)")
-            else logger.println("running command: ${args.joinToString(" ")}")
+            if (verbosity.doNotPrintArgs) outLogger.println("running command (hidden args)")
+            else outLogger.println("running command: ${args.joinToString(" ")}")
         }
         val result = executorFactory.executor(
             saveOutput = saveOutput,
             verbosity = verbosity,
-            logger = logger
+            outLogger = outLogger,
+            errLogger = errLogger
         ).execute(
             workingDir = workingDir,
             env = env,
             args = args
         )
-        if (verbosity.explainOutput) logger.println("output: ${(result as? ShellFullResult)?.output}")
+        if (verbosity.explainOutput) outLogger.println("output: ${(result as? ShellFullResult)?.output}")
 
         if (result.code != 0) {
             resultHandler?.nonZeroOkIf?.go { isOk ->
@@ -405,7 +427,8 @@ class MemSafeShellRunner(
     workingDir = workingDir,
     env = env,
     verbosity = verbosity,
-    logger = logger,
+    outLogger = logger,
+    errLogger = logger,
     resultHandler = resultHandler
 ) {
     init {
@@ -420,7 +443,8 @@ class FullResultShellRunner(
     workingDir: IDFile? = null,
     env: Map<String, String> = mapOf(),
     verbosity: ShellVerbosity = Companion.DEFAULT,
-    logger: Prints = DefaultLogger,
+    errLogger: Prints = DefaultLogger,
+    outLogger: Prints = DefaultLogger,
     executorFactory: ShellExecutorFactory = ShellExecutorFactory.DEFAULT,
     resultHandler: ShellResultHandler<ShellFullResult>? = null
 ) : ShellRunner<ShellFullResult>(
@@ -428,7 +452,8 @@ class FullResultShellRunner(
     workingDir = workingDir,
     env = env,
     verbosity = verbosity,
-    logger = logger,
+    errLogger = errLogger,
+    outLogger = outLogger,
     resultHandler = resultHandler,
     executorFactory = executorFactory
 ) {
@@ -437,6 +462,7 @@ class FullResultShellRunner(
 
 
 data class ExecStreamer(
+    override val programPathContext: ShellProgramPathContext = DEFAULT_MAC_PROGRAM_PATH_CONTEXT,
     private val verbosity: ShellVerbosity,
     private val workingDir: IDFile? = null,
     private val env: Map<String, String> = mapOf(),
@@ -486,7 +512,9 @@ data class ExecStreamer(
 }
 
 
-object CommandReturner : Shell<Command> {
+class CommandReturner(
+    override val programPathContext: ShellProgramPathContext = DEFAULT_MAC_PROGRAM_PATH_CONTEXT
+) : Shell<Command> {
     override fun sendCommand(vararg args: String) = Command(args.map { it.toString() })
 }
 

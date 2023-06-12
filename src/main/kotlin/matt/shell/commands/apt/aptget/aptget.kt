@@ -12,6 +12,7 @@ class AptGet<R>(shell: Shell<R>) : ControlledShellProgram<R>(shell = shell, prog
 
     companion object {
         const val DEFAULT_AUTO_CONFIRM = false
+        const val DEFAULT_FIX_MISSING = false
         internal const val DEFAULT_AUTO_REMOVE = false
     }
 

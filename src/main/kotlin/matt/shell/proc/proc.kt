@@ -1,6 +1,5 @@
 package matt.shell.proc
 
-import matt.shell.commands.kill.kill
 import matt.lang.RUNTIME
 import matt.lang.consume
 import matt.lang.function.Op
@@ -18,6 +17,7 @@ import matt.shell.PrintInSeq.CHARS
 import matt.shell.PrintInSeq.LINES
 import matt.shell.PrintInSeq.NO
 import matt.shell.ShellVerbosity
+import matt.shell.commands.kill.kill
 import matt.shell.proc.ProcessKillSignal.SIGINT
 import matt.shell.proc.ProcessKillSignal.SIGKILL
 import matt.shell.proc.ProcessKillSignal.SIGTERM
@@ -60,7 +60,8 @@ fun proc(
 
 internal fun Process.await(
     verbosity: ShellVerbosity,
-    logger: Prints = DefaultLogger,
+    outLogger: Prints = DefaultLogger,
+    errLogger: Prints = DefaultLogger,
     saveOutput: Boolean
 ): ShellResult {
 
@@ -70,26 +71,26 @@ internal fun Process.await(
 
     var out = ""
 
-    fun savingInputOp(reader: BufferedReader) = when (verbosity.printInSequence) {
+    fun savingInputOp(reader: BufferedReader, streamLogger: Prints) = when (verbosity.printInSequence) {
         NO    -> reader.readText()
         LINES -> reader.lineSequence().onEach {
-            logger.println(it)
+            streamLogger.println(it)
         }.joinToString("\n")
 
         CHARS -> reader.charSequence().onEach {
-            logger.print(it)
+            streamLogger.print(it)
         }.joinToString("")
     }
 
-    fun inputOp(reader: BufferedReader) = when (verbosity.printInSequence) {
+    fun inputOp(reader: BufferedReader, streamLogger: Prints) = when (verbosity.printInSequence) {
         NO    -> reader.charSequence().consume()
 
         LINES -> reader.lineSequence().onEach {
-            logger.println(it)
+            streamLogger.println(it)
         }.consume()
 
         CHARS -> reader.charSequence().onEach {
-            logger.print(it)
+            streamLogger.print(it)
         }.consume()
     }
 
@@ -100,9 +101,9 @@ internal fun Process.await(
             latch.await()
         }
         if (saveOutput) {
-            err = savingInputOp(errorReader())
+            err = savingInputOp(errorReader(), errLogger)
         } else {
-            inputOp(errorReader())
+            inputOp(errorReader(), errLogger)
         }
 
     }
@@ -110,9 +111,9 @@ internal fun Process.await(
 
     try {
         if (saveOutput) {
-            out = savingInputOp(inputReader())
+            out = savingInputOp(inputReader(), outLogger)
         } else {
-            inputOp(inputReader())
+            inputOp(inputReader(), outLogger)
         }
     } finally {
         latch.open()
