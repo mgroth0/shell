@@ -21,6 +21,7 @@ import matt.shell.ShellProgramPathContext.InPath
 import matt.shell.ShellVerbosity.Companion
 import matt.shell.proc.await
 import matt.shell.proc.proc
+import matt.shell.proc.use
 import matt.shell.report.NonZeroShellResult
 import matt.shell.report.ShellErrorReport
 import matt.shell.report.ShellFullResult
@@ -164,7 +165,7 @@ fun interface ShellExecutor {
 
 fun interface ShellExecutorFactory {
     companion object {
-        val DEFAULT = ShellExecutorFactory { saveOutput, verbosity, outLogger,errLogger ->
+        val DEFAULT = ShellExecutorFactory { saveOutput, verbosity, outLogger, errLogger ->
             DefaultShellExecutor(
                 saveOutput = saveOutput,
                 verbosity = verbosity,
@@ -199,20 +200,14 @@ class DefaultShellExecutor(
             args = args,
             env = env
         )
-        return try {
+        return p.use {
             p.await(
                 verbosity = verbosity,
                 outLogger = outLogger,
                 errLogger = errLogger,
                 saveOutput = saveOutput
             )
-        } finally {
-            p.descendants().forEachOrdered {
-                it.destroyForcibly()
-            }
-            p.destroyForcibly()
         }
-
     }
 }
 

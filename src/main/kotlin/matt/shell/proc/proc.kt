@@ -30,6 +30,17 @@ import java.io.IOException
 import java.io.InputStream
 import kotlin.concurrent.thread
 
+inline fun <R> Process.use(op: () -> R): R {
+    try {
+        return op()
+    } finally {
+        descendants().forEachOrdered {
+            it.destroyForcibly()
+        }
+        destroyForcibly()
+    }
+}
+
 fun proc(
     wd: IDFile?,
     vararg args: String,
