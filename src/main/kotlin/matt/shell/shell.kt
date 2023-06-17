@@ -170,7 +170,7 @@ fun interface ShellExecutorFactory {
                 saveOutput = saveOutput,
                 verbosity = verbosity,
                 outLogger = outLogger,
-                errLogger = errLogger
+                errLogger = errLogger,
             )
         }
     }
@@ -179,7 +179,7 @@ fun interface ShellExecutorFactory {
         saveOutput: Boolean,
         verbosity: ShellVerbosity,
         outLogger: Prints,
-        errLogger: Prints
+        errLogger: Prints,
     ): ShellExecutor
 }
 
@@ -188,7 +188,7 @@ class DefaultShellExecutor(
     private val saveOutput: Boolean,
     private val verbosity: ShellVerbosity,
     private val outLogger: Prints,
-    private val errLogger: Prints
+    private val errLogger: Prints,
 ) : ShellExecutor {
     override fun execute(
         workingDir: IDFile?,
@@ -219,6 +219,7 @@ data class ExecReturner(
     private val env: Map<String, String> = mapOf(),
     private val outLogger: Prints = SystemOutLogger.apply { includeTimeInfo = false },
     private val errLogger: Prints = SystemErrLogger.apply { includeTimeInfo = false },
+    private val metaLogger: Prints = outLogger,
     private val resultHandler: ShellResultHandler<ShellFullResult>? = null,
 ) : DirectableShell<String, ExecReturner>, ConfigurableShell<String, ExecReturner> {
     companion object {
@@ -257,6 +258,7 @@ data class ExecReturner(
             verbosity = verbosity,
             outLogger = outLogger,
             errLogger = errLogger,
+            metaLogger = metaLogger,
             resultHandler = resultHandler,
             workingDir = workingDir,
             env = env,
@@ -314,6 +316,7 @@ fun shell(
     verbosity: ShellVerbosity = Companion.DEFAULT,
     outLogger: Prints = DefaultLogger,
     errLogger: Prints = DefaultLogger,
+    metaLogger: Prints = outLogger,
     executorFactory: ShellExecutorFactory = ShellExecutorFactory.DEFAULT,
     resultHandler: ShellResultHandler<ShellFullResult>? = null
 ) = FullResultShellRunner(
@@ -323,6 +326,7 @@ fun shell(
     verbosity = verbosity,
     outLogger = outLogger,
     errLogger = errLogger,
+    metaLogger = metaLogger,
     resultHandler = resultHandler,
     executorFactory = executorFactory
 ).run().output
@@ -366,14 +370,15 @@ abstract class ShellRunner<S : ShellResult>(
     private val verbosity: ShellVerbosity = Companion.DEFAULT,
     private val outLogger: Prints = DefaultLogger,
     private val errLogger: Prints = DefaultLogger,
+    private val metaLogger: Prints = outLogger,
     private val executorFactory: ShellExecutorFactory = ShellExecutorFactory.DEFAULT,
     private val resultHandler: ShellResultHandler<S>? = null
 ) {
     protected abstract val saveOutput: Boolean
     fun run(): S {
         if (verbosity.printRunning) {
-            if (verbosity.doNotPrintArgs) outLogger.println("running command (hidden args)")
-            else outLogger.println("running command: ${args.joinToString(" ")}")
+            if (verbosity.doNotPrintArgs) metaLogger.println("running command (hidden args)")
+            else metaLogger.println("running command: ${args.joinToString(" ")}")
         }
         val result = executorFactory.executor(
             saveOutput = saveOutput,
@@ -385,7 +390,7 @@ abstract class ShellRunner<S : ShellResult>(
             env = env,
             args = args
         )
-        if (verbosity.explainOutput) outLogger.println("output: ${(result as? ShellFullResult)?.output}")
+        if (verbosity.explainOutput) metaLogger.println("output: ${(result as? ShellFullResult)?.output}")
 
         if (result.code != 0) {
             resultHandler?.nonZeroOkIf?.go { isOk ->
@@ -440,6 +445,7 @@ class FullResultShellRunner(
     verbosity: ShellVerbosity = Companion.DEFAULT,
     errLogger: Prints = DefaultLogger,
     outLogger: Prints = DefaultLogger,
+    metaLogger: Prints = outLogger,
     executorFactory: ShellExecutorFactory = ShellExecutorFactory.DEFAULT,
     resultHandler: ShellResultHandler<ShellFullResult>? = null
 ) : ShellRunner<ShellFullResult>(
@@ -449,6 +455,7 @@ class FullResultShellRunner(
     verbosity = verbosity,
     errLogger = errLogger,
     outLogger = outLogger,
+    metaLogger = metaLogger,
     resultHandler = resultHandler,
     executorFactory = executorFactory
 ) {
