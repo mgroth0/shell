@@ -2,6 +2,7 @@ package matt.shell
 
 import kotlinx.serialization.Serializable
 import matt.lang.go
+import matt.lang.require.requireNot
 import matt.log.DefaultLogger
 import matt.log.SystemErrLogger
 import matt.log.SystemOutLogger
@@ -272,14 +273,20 @@ interface ShellProgram<R> : UnControlledCommand<R>, Commandable<R> {
     override fun sendCommand(vararg args: String): R
 }
 
-class SimpleShellProgram<R>(val shell: Commandable<R>, val program: String) : ShellProgram<R> {
+class SimpleShellProgram<R>(
+    val shell: Commandable<R>,
+    val program: String
+) : ShellProgram<R> {
     override fun sendCommand(vararg args: String): R {
         return shell.sendCommand(program, *args)
     }
 }
 
 abstract class ControlledShellProgram<R>(private val program: ShellProgram<R>) {
-    constructor(program: String, shell: Commandable<R>) : this(SimpleShellProgram(shell = shell, program = program))
+    constructor(
+        program: String,
+        shell: Commandable<R>
+    ) : this(SimpleShellProgram(shell = shell, program = program))
 
     protected fun sendCommand(vararg args: String): R {
         return program.sendCommand(*args)
@@ -432,7 +439,7 @@ class MemSafeShellRunner(
     resultHandler = resultHandler
 ) {
     init {
-        require(!verbosity.explainOutput)
+        requireNot(verbosity.explainOutput)
     }
 
     override val saveOutput = false
@@ -538,5 +545,7 @@ data /*value*/ class Command(val commands: List<String>) {
     infix fun pipedTo(consumer: Command) = Command(commands + "|" + consumer.commands)
 
     infix fun pipedToFile(file: FilePath) = Command(commands + ">" + file.filePath)
+
+    infix fun and(consumer: Command) = Command(commands + "&&" + consumer.commands)
 
 }
