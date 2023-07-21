@@ -12,12 +12,13 @@ import matt.model.flowlogic.latch.SimpleLatch
 import matt.model.op.prints.Prints
 import matt.prim.str.joinWithSpaces
 import matt.prim.str.lower
-import matt.shell.ExecReturner
 import matt.shell.PrintInSeq.CHARS
 import matt.shell.PrintInSeq.LINES
 import matt.shell.PrintInSeq.NO
 import matt.shell.ShellVerbosity
 import matt.shell.commands.kill.kill
+import matt.shell.context.ShellExecutionContext
+import matt.shell.execReturners
 import matt.shell.proc.ProcessKillSignal.SIGINT
 import matt.shell.proc.ProcessKillSignal.SIGKILL
 import matt.shell.proc.ProcessKillSignal.SIGTERM
@@ -82,7 +83,10 @@ internal fun Process.await(
 
     var out = ""
 
-    fun savingInputOp(reader: BufferedReader, streamLogger: Prints) = when (verbosity.printInSequence) {
+    fun savingInputOp(
+        reader: BufferedReader,
+        streamLogger: Prints
+    ) = when (verbosity.printInSequence) {
         NO    -> reader.readText()
         LINES -> reader.lineSequence().onEach {
             streamLogger.println(it)
@@ -93,7 +97,10 @@ internal fun Process.await(
         }.joinToString("")
     }
 
-    fun inputOp(reader: BufferedReader, streamLogger: Prints) = when (verbosity.printInSequence) {
+    fun inputOp(
+        reader: BufferedReader,
+        streamLogger: Prints
+    ) = when (verbosity.printInSequence) {
         NO    -> reader.charSequence().consume()
 
         LINES -> reader.lineSequence().onEach {
@@ -158,6 +165,7 @@ fun Process.forEachErrChar(op: (String) -> Unit) = errorStream.bufferedReader().
     op(it)
 }
 
+context (ShellExecutionContext)
 fun Process.scheduleShutdownKill() {
     val processPid = pid()
     duringShutdown {
@@ -172,7 +180,10 @@ fun Process.scheduleShutdownKill() {
     }
 }
 
-fun Process.whenDead(daemon: Boolean = true, op: Op) {
+fun Process.whenDead(
+    daemon: Boolean = true,
+    op: Op
+) {
     thread(isDaemon = daemon) {
         waitFor()
         op()
@@ -186,11 +197,12 @@ enum class ProcessKillSignal {
 @JvmInline
 value class Pid(internal val id: Long) {
 
+    context(ShellExecutionContext)
     fun kill(
         signal: ProcessKillSignal = SIGKILL,
         doNotThrowIfNoSuchProcess: Boolean = false
     ) {
-        fun op() = ExecReturner.SILENT.kill(this, signal)
+        fun op() = execReturners.silent.kill(this, signal)
         if (doNotThrowIfNoSuchProcess) {
             try {
                 op()
@@ -211,6 +223,7 @@ value class Pid(internal val id: Long) {
 
     }
 
+    context (ShellExecutionContext)
     fun obliterate() {
         println("obliterating $this")
         kill(SIGTERM)
@@ -221,5 +234,7 @@ value class Pid(internal val id: Long) {
 }
 
 fun Process.myPid() = Pid(pid())
+context (ShellExecutionContext)
 fun Process.kill(signal: ProcessKillSignal = SIGKILL) = myPid().kill(signal)
+context (ShellExecutionContext)
 fun Process.interrupt() = kill(SIGINT)

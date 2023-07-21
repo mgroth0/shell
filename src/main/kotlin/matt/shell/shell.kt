@@ -17,9 +17,8 @@ import matt.service.MattService
 import matt.shell.PrintInSeq.CHARS
 import matt.shell.PrintInSeq.LINES
 import matt.shell.PrintInSeq.NO
-import matt.shell.ShellProgramPathContext.HomeBrew
-import matt.shell.ShellProgramPathContext.InPath
 import matt.shell.ShellVerbosity.Companion
+import matt.shell.context.ShellExecutionContext
 import matt.shell.proc.await
 import matt.shell.proc.proc
 import matt.shell.proc.use
@@ -42,25 +41,15 @@ interface Commandable<R> {
 @ShellDSL
 interface Shell<R : Any?> : MattService, Commandable<R> {
     val FilePath.pathOp: String get() = filePath
-    val programPathContext: ShellProgramPathContext
+    val executionContext: ShellExecutionContext
 }
 
-enum class ShellProgramPathContext {
-    InPath, HomeBrew
-}
-
-val DEFAULT_MAC_PROGRAM_PATH_CONTEXT = HomeBrew
-val DEFAULT_LINUX_PROGRAM_PATH_CONTEXT = InPath
-val DEFAULT_WINDOWS_PROGRAM_PATH_CONTEXT = InPath
-
-//interface ShellDomain<R> : Shell<R> {
-//    val engine: Shell<R>
-//    override fun sendCommand(vararg args: Any): R {
-//        return engine.sendCommand(args)
-//    }
-//}
-//
-//data class NonSpecificShellDomain<R>(override val engine: Shell<R>) : ShellDomain<R>
+val Shell<*>.programPathContext
+    get() = executionContext.shellProgramPathContext ?: error("programPathContext is required to be known")
+val Shell<*>.inSingularityContainer
+    get() = executionContext.inSingularityContainer ?: error("inSingularityContainer is required to be known")
+val Shell<*>.inSlurmJob get() = executionContext.inSlurmJob ?: error("inSlurmJob is required to be known")
+val Shell<*>.needsModules get() = executionContext.needsModules ?: error("needsModules is required to be known")
 
 
 interface ConfigurableWorkingDir<T> {
@@ -213,8 +202,21 @@ class DefaultShellExecutor(
 }
 
 
+val ShellExecutionContext.execReturners get() = ExecReturners(this)
+
+class ExecReturners(executionContext: ShellExecutionContext) {
+    val silent by lazy { ExecReturner(executionContext = executionContext, verbosity = ShellVerbosity.SILENT) }
+    val stream by lazy { ExecReturner(executionContext = executionContext, verbosity = ShellVerbosity.STREAM) }
+    val streamChars by lazy {
+        ExecReturner(
+            executionContext = executionContext,
+            verbosity = ShellVerbosity.STREAM_CHARS
+        )
+    }
+}
+
 data class ExecReturner(
-    override val programPathContext: ShellProgramPathContext = DEFAULT_MAC_PROGRAM_PATH_CONTEXT,
+    override val executionContext: ShellExecutionContext,
     private val verbosity: ShellVerbosity,
     private val workingDir: IDFile? = null,
     private val env: Map<String, String> = mapOf(),
@@ -223,11 +225,6 @@ data class ExecReturner(
     private val metaLogger: Prints = outLogger,
     private val resultHandler: ShellResultHandler<ShellFullResult>? = null,
 ) : DirectableShell<String, ExecReturner>, ConfigurableShell<String, ExecReturner> {
-    companion object {
-        val SILENT by lazy { ExecReturner(verbosity = ShellVerbosity.SILENT) }
-        val STREAM by lazy { ExecReturner(verbosity = ShellVerbosity.STREAM) }
-        val STREAM_CHARS by lazy { ExecReturner(verbosity = ShellVerbosity.STREAM_CHARS) }
-    }
 
     override fun withEnv(
         env: Map<String, String>,
@@ -302,6 +299,7 @@ fun exec(
     *args
 ).waitFor() == 0
 
+context(ShellExecutionContext)
 fun shells(
     verbosity: ShellVerbosity = ShellVerbosity.SILENT,
     workingDir: IDFolder? = null,
@@ -309,6 +307,7 @@ fun shells(
     op: ExecReturner.() -> Unit
 ) {
     ExecReturner(
+        executionContext = this@ShellExecutionContext,
         verbosity = verbosity,
         workingDir = workingDir,
         env = env
@@ -338,7 +337,7 @@ fun shell(
     executorFactory = executorFactory
 ).run().output
 
-
+context(ShellExecutionContext)
 fun streamingMemorySafeShells(
     verbosity: ShellVerbosity = Companion.SILENT,
     workingDir: IDFolder? = null,
@@ -346,6 +345,7 @@ fun streamingMemorySafeShells(
     op: ExecStreamer.() -> Unit
 ) {
     ExecStreamer(
+        executionContext = this@ShellExecutionContext,
         verbosity = verbosity,
         workingDir = workingDir,
         env = env
@@ -470,19 +470,27 @@ class FullResultShellRunner(
 }
 
 
+val ShellExecutionContext.execStreamers get() = ExecStreamers(this)
+
+class ExecStreamers(executionContext: ShellExecutionContext) {
+    val silent by lazy { ExecStreamer(executionContext = executionContext, verbosity = ShellVerbosity.SILENT) }
+    val stream by lazy { ExecStreamer(executionContext = executionContext, verbosity = ShellVerbosity.STREAM) }
+    val streamChars by lazy {
+        ExecStreamer(
+            executionContext = executionContext,
+            verbosity = ShellVerbosity.STREAM_CHARS
+        )
+    }
+}
+
 data class ExecStreamer(
-    override val programPathContext: ShellProgramPathContext = DEFAULT_MAC_PROGRAM_PATH_CONTEXT,
+    override val executionContext: ShellExecutionContext,
     private val verbosity: ShellVerbosity,
     private val workingDir: IDFile? = null,
     private val env: Map<String, String> = mapOf(),
     private val logger: Prints = SystemOutLogger.apply { includeTimeInfo = false },
     private val resultHandler: ShellResultHandler<ShellResult>? = null
 ) : DirectableShell<ShellResult, ExecStreamer>, ConfigurableShell<ShellResult, ExecStreamer> {
-    companion object {
-        val SILENT by lazy { ExecStreamer(verbosity = ShellVerbosity.SILENT) }
-        val STREAM by lazy { ExecStreamer(verbosity = ShellVerbosity.STREAM) }
-        val STREAM_CHARS by lazy { ExecStreamer(verbosity = ShellVerbosity.STREAM_CHARS) }
-    }
 
     override fun withEnv(
         env: Map<String, String>,
@@ -520,9 +528,10 @@ data class ExecStreamer(
     }
 }
 
-
+val Shell<*>.command get() = executionContext.command
+val ShellExecutionContext.command get() = CommandReturner(this)
 class CommandReturner(
-    override val programPathContext: ShellProgramPathContext = DEFAULT_MAC_PROGRAM_PATH_CONTEXT
+    override val executionContext: ShellExecutionContext
 ) : Shell<Command> {
     override fun sendCommand(vararg args: String) = Command(args.map { it.toString() })
 }
