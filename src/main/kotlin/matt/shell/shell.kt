@@ -385,7 +385,7 @@ abstract class ShellRunner<S : ShellResult>(
     fun run(): S {
         if (verbosity.printRunning) {
             if (verbosity.doNotPrintArgs) metaLogger.println("running command (hidden args)")
-            else metaLogger.println("running command: ${args.joinToString(" ")}")
+            else metaLogger.println("running command(${args.size}): ${args.joinToString(" ")}")
         }
         val result = executorFactory.executor(
             saveOutput = saveOutput,
