@@ -5,6 +5,7 @@ import matt.lang.consume
 import matt.lang.function.Op
 import matt.lang.seq.charSequence
 import matt.lang.shutdown.duringShutdown
+import matt.lang.shutdown.preaper.ProcessReaper
 import matt.log.DefaultLogger
 import matt.log.warn.warn
 import matt.model.data.file.IDFile
@@ -51,11 +52,13 @@ fun proc(
         it.key + "=" + it.value
     }.toTypedArray()
     try {
-        return if (wd == null) RUNTIME.exec(
+        val p = if (wd == null) RUNTIME.exec(
             args, envP
         ) else RUNTIME.exec(
             args, envP, wd.idFile
         )
+        ProcessReaper.ensureProcessEndsWithThisJvm(p)
+        return p
     } catch (e: IOException) {
         var fullCommand = ""
         if (wd != null) {
@@ -224,17 +227,26 @@ value class Pid(internal val id: Long) {
     }
 
     context (ShellExecutionContext)
-    fun obliterate() {
-        println("obliterating $this")
+    fun terminate() {
         kill(SIGTERM)
+    }
+
+    context (ShellExecutionContext)
+    fun interrupt() {
         kill(SIGINT)
+    }
+
+    context (ShellExecutionContext)
+    fun kill() {
         kill(SIGKILL)
     }
+
 
 }
 
 fun Process.myPid() = Pid(pid())
 context (ShellExecutionContext)
 fun Process.kill(signal: ProcessKillSignal = SIGKILL) = myPid().kill(signal)
+
 context (ShellExecutionContext)
 fun Process.interrupt() = kill(SIGINT)
