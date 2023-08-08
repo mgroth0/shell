@@ -7,6 +7,7 @@ interface ShellScriptDispatcher<SH : Shell<*>> {
 }
 
 
+
 class ExecuteInPlace<SH : Shell<*>>(private val shell: SH) : ShellScriptDispatcher<SH> {
     override fun dispatch(script: SH.() -> Unit) {
         shell.script()

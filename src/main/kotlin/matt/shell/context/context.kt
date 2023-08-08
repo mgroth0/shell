@@ -4,6 +4,9 @@ import matt.lang.context.DEFAULT_LINUX_PROGRAM_PATH_CONTEXT
 import matt.lang.context.DEFAULT_MAC_PROGRAM_PATH_CONTEXT
 import matt.lang.context.DEFAULT_WINDOWS_PROGRAM_PATH_CONTEXT
 import matt.lang.context.ShellProgramPathContext
+import matt.lang.platform.HasOs
+import matt.lang.platform.OsEnum
+import matt.lang.platform.OsEnum.Windows
 
 interface ShellExecutionContext {
     val shellProgramPathContext: ShellProgramPathContext?
@@ -114,3 +117,14 @@ val DefaultWindowsExecutionContext by lazy {
         needsModules = false,
     )
 }
+
+
+val HasOs.knownShellContextFromOs
+    get() = when (os) {
+        OsEnum.Linux -> PartiallyKnownExecutionContext(
+            shellProgramPathContext = DEFAULT_LINUX_PROGRAM_PATH_CONTEXT
+        )
+
+        OsEnum.Mac   -> DefaultMacExecutionContext
+        Windows      -> DefaultWindowsExecutionContext
+    }

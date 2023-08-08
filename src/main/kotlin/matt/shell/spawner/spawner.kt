@@ -8,6 +8,8 @@ import matt.shell.proc.ProcessKillSignal.SIGKILL
 import matt.shell.proc.kill
 import matt.shell.proc.proc
 import matt.shell.report.ShellErrException
+import matt.shell.spawner.OutputType.STDERR
+import matt.shell.spawner.OutputType.STDOUT
 import kotlin.concurrent.thread
 import kotlin.time.Duration
 
@@ -73,9 +75,20 @@ data class ExecProcessSpawner(
 }
 
 
-fun Process.transferAllOutputToStdOutInThreads() {
+enum class OutputType {
+    STDOUT, STDERR
+}
+
+fun Process.transferAllOutputToStdOutInThreads(
+    errTo: OutputType
+) {
     thread(isDaemon = true) {
-        errorStream.transferTo(System.out)
+        errorStream.transferTo(
+            when (errTo) {
+                STDERR -> System.err
+                STDOUT -> System.out
+            }
+        )
     }
     thread(isDaemon = true) {
         inputStream.transferTo(System.out)
