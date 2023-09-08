@@ -1,5 +1,11 @@
 package matt.shell.spawner
 
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
+import matt.async.thread.namedThread
+import matt.model.code.output.OutputType
+import matt.model.code.output.OutputType.STDERR
+import matt.model.code.output.OutputType.STDOUT
 import matt.model.data.file.IDFile
 import matt.prim.str.strings
 import matt.shell.ConfigurableShell
@@ -8,9 +14,6 @@ import matt.shell.proc.ProcessKillSignal.SIGKILL
 import matt.shell.proc.kill
 import matt.shell.proc.proc
 import matt.shell.report.ShellErrException
-import matt.shell.spawner.OutputType.STDERR
-import matt.shell.spawner.OutputType.STDOUT
-import kotlin.concurrent.thread
 import kotlin.time.Duration
 
 data class ExecProcessSpawner(
@@ -25,7 +28,7 @@ data class ExecProcessSpawner(
             wd = workingDir, env = env, args = (args.strings())
         )
         if (timeout != null) {
-            thread(name = "timeoutExecutor") {
+            namedThread(name = "timeoutExecutor") {
                 Thread.sleep(timeout.inWholeMilliseconds)
                 if (p.isAlive) {
                     println("killing process $p after timeout of $timeout...")
@@ -39,7 +42,7 @@ data class ExecProcessSpawner(
             }
         }
         if (throwOnErr) {
-            thread(isDaemon = true, name = "process thread") {
+            namedThread(isDaemon = true, name = "process thread") {
                 p.errorReader().lines().forEach {
                     throw ShellErrException(it)
                 }
@@ -75,14 +78,10 @@ data class ExecProcessSpawner(
 }
 
 
-enum class OutputType {
-    STDOUT, STDERR
-}
-
 fun Process.transferAllOutputToStdOutInThreads(
     errTo: OutputType
 ) {
-    thread(isDaemon = true) {
+    namedThread(isDaemon = true, name = "transferAllOutputToStdOutInThreads Thread 1") {
         errorStream.transferTo(
             when (errTo) {
                 STDERR -> System.err
@@ -90,7 +89,24 @@ fun Process.transferAllOutputToStdOutInThreads(
             }
         )
     }
-    thread(isDaemon = true) {
+    namedThread(isDaemon = true, name = "transferAllOutputToStdOutInThreads Thread 2") {
+        inputStream.transferTo(System.out)
+    }
+}
+
+suspend fun Process.transferAllOutputToStdOutInJobs(
+    scope: CoroutineScope,
+    errTo: OutputType
+) {
+    scope.launch {
+        errorStream.transferTo(
+            when (errTo) {
+                STDERR -> System.err
+                STDOUT -> System.out
+            }
+        )
+    }
+    scope.launch {
         inputStream.transferTo(System.out)
     }
 }

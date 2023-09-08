@@ -43,6 +43,7 @@ class ShellErrorReport(
                     +result.std
                     +TEXT_BAR
                     blankLine()
+                    +"Full Std Err:"
                     +TEXT_BAR
                     +result.err
                     +TEXT_BAR

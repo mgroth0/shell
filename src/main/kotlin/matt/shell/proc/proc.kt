@@ -1,15 +1,16 @@
 package matt.shell.proc
 
+import matt.async.thread.TheProcessReaper
+import matt.async.thread.namedThread
 import matt.lang.RUNTIME
 import matt.lang.consume
 import matt.lang.function.Op
 import matt.lang.seq.charSequence
 import matt.lang.shutdown.duringShutdown
-import matt.lang.shutdown.preaper.ProcessReaper
 import matt.log.DefaultLogger
 import matt.log.warn.warn
 import matt.model.data.file.IDFile
-import matt.model.flowlogic.latch.SimpleLatch
+import matt.model.flowlogic.latch.SimpleThreadLatch
 import matt.model.op.prints.Prints
 import matt.prim.str.joinWithSpaces
 import matt.prim.str.lower
@@ -30,7 +31,6 @@ import matt.stream.forEachChar
 import java.io.BufferedReader
 import java.io.IOException
 import java.io.InputStream
-import kotlin.concurrent.thread
 
 inline fun <R> Process.use(op: () -> R): R {
     try {
@@ -57,7 +57,7 @@ fun proc(
         ) else RUNTIME.exec(
             args, envP, wd.idFile
         )
-        ProcessReaper.ensureProcessEndsWithThisJvm(p)
+        TheProcessReaper.ensureProcessEndsWithThisJvm(p)
         return p
     } catch (e: IOException) {
         var fullCommand = ""
@@ -116,8 +116,8 @@ internal fun Process.await(
     }
 
 
-    val latch = SimpleLatch()
-    val t = thread(name = "errorReader") {
+    val latch = SimpleThreadLatch()
+    val t = namedThread(name = "errorReader") {
         if (verbosity.outBeforeErr) {
             latch.await()
         }
@@ -187,7 +187,7 @@ fun Process.whenDead(
     daemon: Boolean = true,
     op: Op
 ) {
-    thread(isDaemon = daemon) {
+    namedThread(isDaemon = daemon, name = "When Dead Thread") {
         waitFor()
         op()
     }
