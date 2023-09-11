@@ -1,3 +1,4 @@
+@file:JvmName("ShellJvmKt")
 package matt.shell
 
 import kotlinx.serialization.Serializable
@@ -7,7 +8,7 @@ import matt.log.DefaultLogger
 import matt.log.SystemErrLogger
 import matt.log.SystemOutLogger
 import matt.log.warn.warn
-import matt.model.data.file.FilePath
+import matt.lang.model.file.FilePath
 import matt.model.data.file.IDFile
 import matt.model.data.file.IDFolder
 import matt.model.op.prints.Prints

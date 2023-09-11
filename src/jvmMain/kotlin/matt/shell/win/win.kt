@@ -3,7 +3,7 @@ package matt.shell.win
 import matt.log.DefaultLogger
 import matt.log.logger.Logger
 import matt.model.code.sys.NEW_MAC
-import matt.model.data.file.FilePath
+import matt.lang.model.file.FilePath
 import matt.prim.str.strings
 import matt.shell.Shell
 import matt.shell.ShellVerbosity

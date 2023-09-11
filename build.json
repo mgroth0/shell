@@ -1,20 +1,21 @@
 {
-  "type": "BasicJvmOnlyMod",
+  "type": "MultiPlatformModule",
   "dependencies": [
     {
       "type": "Project",
-      "cfg": "api",
+      "cfg": "jvmMainApi",
       "path": ":k:stream"
     },
     {
       "type": "Project",
-      "cfg": "api",
+      "cfg": "jvmMainApi",
       "path": ":k:async:thread"
     },
     {
       "type": "Project",
-      "cfg": "testImplementation",
+      "cfg": "jvmTestImplementation",
       "path": ":k:test"
     }
-  ]
+  ],
+  "jvm": {}
 }

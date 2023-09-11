@@ -1,7 +1,7 @@
 package matt.shell.commands.rm
 
 import matt.lang.optArray
-import matt.model.data.file.FilePath
+import matt.lang.model.file.FilePath
 import matt.shell.Shell
 
 fun <R> Shell<R>.rm(
