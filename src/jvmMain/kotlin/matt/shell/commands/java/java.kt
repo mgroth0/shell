@@ -3,7 +3,7 @@ package matt.shell.commands.java
 import matt.lang.classname.JvmQualifiedClassName
 import matt.lang.model.file.FilePath
 import matt.lang.optArray
-import matt.model.code.jvm.JvmArgs
+import matt.model.code.jvm.JavaExecArgs
 import matt.shell.ControlledShellProgram
 import matt.shell.Shell
 
@@ -15,7 +15,7 @@ class JavaCommand<R>(shell: Shell<R>) : ControlledShellProgram<R>(
 ) {
 
     fun executeClass(
-        jvmArgs: JvmArgs,
+        jvmArgs: JavaExecArgs,
         classpath: List<String>? = null,
         mainClass: JvmQualifiedClassName,
         commandLineArgs: Array<out String> = arrayOf()
@@ -27,7 +27,7 @@ class JavaCommand<R>(shell: Shell<R>) : ControlledShellProgram<R>(
     )
 
     fun executeJar(
-        jvmArgs: JvmArgs,
+        jvmArgs: JavaExecArgs,
         classpath: List<String>? = null,
         jar: FilePath,
         commandLineArgs: Array<out String> = arrayOf()
@@ -40,7 +40,7 @@ class JavaCommand<R>(shell: Shell<R>) : ControlledShellProgram<R>(
 
 
     private fun executeCommon(
-        jvmArgs: JvmArgs,
+        jvmArgs: JavaExecArgs,
         classpath: List<String>? = null,
         executionArgs: Array<String>,
         commandLineArgs: Array<out String>
