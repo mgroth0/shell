@@ -34,7 +34,7 @@ class JavaCommand<R>(shell: Shell<R>) : ControlledShellProgram<R>(
     ) = executeCommon(
         jvmArgs = jvmArgs,
         classpath = classpath,
-        executionArgs = arrayOf("-Jar", jar.filePath),
+        executionArgs = arrayOf("-Jar", jar.path),
         commandLineArgs = commandLineArgs
     )
 

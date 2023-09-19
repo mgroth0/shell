@@ -7,6 +7,7 @@ import matt.lang.context.ShellProgramPathContext
 import matt.lang.platform.HasOs
 import matt.lang.platform.OsEnum
 import matt.lang.platform.OsEnum.Windows
+import matt.lang.shutdown.preaper.ProcessReaper
 
 interface ShellExecutionContext {
     val shellProgramPathContext: ShellProgramPathContext?
@@ -21,6 +22,22 @@ interface ShellExecutionContext {
     fun inSingularity(): ShellExecutionContext
     fun inSlurmJob(): ShellExecutionContext
 }
+
+interface ReapingShellExecutionContext : ShellExecutionContext, ProcessReaper
+
+class ReapingShellExecutionContextImpl(
+    val shellExecutionContext: ShellExecutionContext,
+    val processReaper: ProcessReaper
+) : ReapingShellExecutionContext, ShellExecutionContext by shellExecutionContext, ProcessReaper by processReaper
+
+fun ShellExecutionContext.withReaper(processReaper: ProcessReaper) =
+    ReapingShellExecutionContextImpl(this, processReaper)
+
+fun ProcessReaper.withShellExecutionContext(shellExecutionContext: ShellExecutionContext) =
+    ReapingShellExecutionContextImpl(shellExecutionContext, this)
+
+
+
 
 object UnknownShellExecutionContext : ShellExecutionContext {
     override val shellProgramPathContext = null

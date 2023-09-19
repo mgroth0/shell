@@ -1,7 +1,7 @@
 package matt.shell.commands.apt
 
 import matt.lang.If
-import matt.lang.function.DSL
+import matt.lang.function.Dsl
 import matt.log.warn.warn
 import matt.shell.ControlledShellProgram
 import matt.shell.Shell
@@ -17,7 +17,7 @@ val <R> Shell<R>.apt get() = Apt(this)
 
 class Apt<R>(shell: Shell<R>) : ControlledShellProgram<R>(program = "apt", shell = shell), AptLike {
     fun update(
-        options: DSL<AptOptionsBuilder> = {}
+        options: Dsl<AptOptionsBuilder> = {}
     ): R {
         val opts = AptOptionsBuilder().apply(options).current
         if (opts.lockTimeoutSeconds != null) {

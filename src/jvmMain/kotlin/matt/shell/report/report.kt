@@ -1,14 +1,14 @@
 package matt.shell.report
 
+import matt.lang.model.file.FilePath
 import matt.log.textart.TEXT_BAR
 import matt.model.code.errreport.Report
-import matt.model.data.file.IDFile
 import matt.prim.str.elementsToString
 import matt.prim.str.joinWithSpaces
-import matt.prim.str.mybuild.string
+import matt.prim.str.mybuild.api.string
 
 class ShellErrorReport(
-    workingDir: IDFile?,
+    workingDir: FilePath?,
     env: Map<String, String>,
     args: Array<out String>,
     result: ShellResult

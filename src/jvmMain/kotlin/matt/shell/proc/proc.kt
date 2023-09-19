@@ -1,15 +1,15 @@
 package matt.shell.proc
 
-import matt.async.thread.TheProcessReaper
 import matt.async.thread.namedThread
 import matt.lang.RUNTIME
 import matt.lang.consume
+import matt.lang.file.toJFile
 import matt.lang.function.Op
+import matt.lang.model.file.FilePath
 import matt.lang.seq.charSequence
-import matt.lang.shutdown.duringShutdown
+import matt.lang.shutdown.preaper.ProcessReaper
 import matt.log.DefaultLogger
 import matt.log.warn.warn
-import matt.model.data.file.IDFile
 import matt.model.flowlogic.latch.SimpleThreadLatch
 import matt.model.op.prints.Prints
 import matt.prim.str.joinWithSpaces
@@ -19,7 +19,7 @@ import matt.shell.PrintInSeq.LINES
 import matt.shell.PrintInSeq.NO
 import matt.shell.ShellVerbosity
 import matt.shell.commands.kill.kill
-import matt.shell.context.ShellExecutionContext
+import matt.shell.context.ReapingShellExecutionContext
 import matt.shell.execReturners
 import matt.shell.proc.ProcessKillSignal.SIGINT
 import matt.shell.proc.ProcessKillSignal.SIGKILL
@@ -43,8 +43,9 @@ inline fun <R> Process.use(op: () -> R): R {
     }
 }
 
+context(ProcessReaper)
 fun proc(
-    wd: IDFile?,
+    wd: FilePath?,
     vararg args: String,
     env: Map<String, String> = mapOf()
 ): Process {
@@ -55,14 +56,14 @@ fun proc(
         val p = if (wd == null) RUNTIME.exec(
             args, envP
         ) else RUNTIME.exec(
-            args, envP, wd.idFile
+            args, envP, wd.toJFile()
         )
-        TheProcessReaper.ensureProcessEndsWithThisJvm(p)
+        ensureProcessEndsAtShutdown(p)
         return p
     } catch (e: IOException) {
         var fullCommand = ""
         if (wd != null) {
-            fullCommand += "cd ${wd.filePath}; "
+            fullCommand += "cd ${wd.path}; "
         }
         env.forEach {
             fullCommand += "${it.key}=${it.value} "
@@ -168,20 +169,20 @@ fun Process.forEachErrChar(op: (String) -> Unit) = errorStream.bufferedReader().
     op(it)
 }
 
-context (ShellExecutionContext)
-fun Process.scheduleShutdownKill() {
-    val processPid = pid()
-    duringShutdown {
-        if (isAlive) {
-            /*IntelliJ seems to kill Sys.out or stop reading it or whatever during the shutdown process, so this won't be seen in the console if run through an IntelliJ Gradle Run Action*/
-            println("killing process ($processPid)")
-            kill(SIGKILL)
-            println("killed process")
-        } else {
-            println("blender process ($processPid) is already dead")
-        }
-    }
-}
+//context (ShellExecutionContext, ShutdownExecutor)
+//fun Process.scheduleShutdownKill() {
+//    val processPid = pid()
+//    duringShutdown {
+//        if (isAlive) {
+//            /*IntelliJ seems to kill Sys.out or stop reading it or whatever during the shutdown process, so this won't be seen in the console if run through an IntelliJ Gradle Run Action*/
+//            println("killing process ($processPid)")
+//            kill(SIGKILL)
+//            println("killed process")
+//        } else {
+//            println("blender process ($processPid) is already dead")
+//        }
+//    }
+//}
 
 fun Process.whenDead(
     daemon: Boolean = true,
@@ -200,7 +201,7 @@ enum class ProcessKillSignal {
 @JvmInline
 value class Pid(internal val id: Long) {
 
-    context(ShellExecutionContext)
+    context(ReapingShellExecutionContext)
     fun kill(
         signal: ProcessKillSignal = SIGKILL,
         doNotThrowIfNoSuchProcess: Boolean = false
@@ -226,17 +227,17 @@ value class Pid(internal val id: Long) {
 
     }
 
-    context (ShellExecutionContext)
+    context(ReapingShellExecutionContext)
     fun terminate() {
         kill(SIGTERM)
     }
 
-    context (ShellExecutionContext)
+    context(ReapingShellExecutionContext)
     fun interrupt() {
         kill(SIGINT)
     }
 
-    context (ShellExecutionContext)
+    context(ReapingShellExecutionContext)
     fun kill() {
         kill(SIGKILL)
     }
@@ -245,8 +246,8 @@ value class Pid(internal val id: Long) {
 }
 
 fun Process.myPid() = Pid(pid())
-context (ShellExecutionContext)
+context (ReapingShellExecutionContext)
 fun Process.kill(signal: ProcessKillSignal = SIGKILL) = myPid().kill(signal)
 
-context (ShellExecutionContext)
+context (ReapingShellExecutionContext)
 fun Process.interrupt() = kill(SIGINT)

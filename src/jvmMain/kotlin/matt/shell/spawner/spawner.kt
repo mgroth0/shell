@@ -3,13 +3,13 @@ package matt.shell.spawner
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import matt.async.thread.namedThread
+import matt.lang.model.file.types.Folder
 import matt.model.code.output.OutputType
 import matt.model.code.output.OutputType.STDERR
 import matt.model.code.output.OutputType.STDOUT
-import matt.model.data.file.IDFile
 import matt.prim.str.strings
 import matt.shell.ConfigurableShell
-import matt.shell.context.ShellExecutionContext
+import matt.shell.context.ReapingShellExecutionContext
 import matt.shell.proc.ProcessKillSignal.SIGKILL
 import matt.shell.proc.kill
 import matt.shell.proc.proc
@@ -17,16 +17,19 @@ import matt.shell.report.ShellErrException
 import kotlin.time.Duration
 
 data class ExecProcessSpawner(
-    override val executionContext: ShellExecutionContext,
+    override val executionContext: ReapingShellExecutionContext,
     private val throwOnErr: Boolean = false,
-    val workingDir: IDFile? = null,
+    val workingDir: Folder? = null,
     val env: Map<String, String> = mapOf(),
     val timeout: Duration? = null
 ) : ConfigurableShell<Process, ExecProcessSpawner> {
+
     override fun sendCommand(vararg args: String): Process {
-        val p = proc(
-            wd = workingDir, env = env, args = (args.strings())
-        )
+        val p = with(executionContext) {
+            proc(
+                wd = workingDir, env = env, args = (args.strings())
+            )
+        }
         if (timeout != null) {
             namedThread(name = "timeoutExecutor") {
                 Thread.sleep(timeout.inWholeMilliseconds)
@@ -56,7 +59,7 @@ data class ExecProcessSpawner(
     }
 
     override fun withWorkingDir(
-        dir: IDFile,
+        dir: Folder,
         op: ExecProcessSpawner.() -> Unit
     ): ExecProcessSpawner {
         return copy(workingDir = dir)

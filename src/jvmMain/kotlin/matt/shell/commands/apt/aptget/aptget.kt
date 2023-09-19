@@ -1,7 +1,7 @@
 package matt.shell.commands.apt.aptget
 
 import matt.lang.If
-import matt.lang.function.DSL
+import matt.lang.function.Dsl
 import matt.log.warn.warn
 import matt.shell.ControlledShellProgram
 import matt.shell.Shell
@@ -19,7 +19,7 @@ class AptGet<R>(shell: Shell<R>) : ControlledShellProgram<R>(shell = shell, prog
     }
 
     fun update(
-        options: DSL<AptOptionsBuilder> = {}
+        options: Dsl<AptOptionsBuilder> = {}
     ): R {
         val opts = AptOptionsBuilder().apply(options).current
         if (opts.lockTimeoutSeconds != null) {
@@ -35,7 +35,7 @@ class AptGet<R>(shell: Shell<R>) : ControlledShellProgram<R>(shell = shell, prog
         vararg packages: String,
         autoConfirm: Boolean = DEFAULT_AUTO_CONFIRM,
         reinstall: Boolean = false,
-        options: DSL<AptOptionsBuilder> = {}
+        options: Dsl<AptOptionsBuilder> = {}
     ): R {
         val opts = AptOptionsBuilder().apply(options).current
         if (opts.lockTimeoutSeconds != null) {

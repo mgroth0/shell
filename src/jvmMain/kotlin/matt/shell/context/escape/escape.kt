@@ -1,7 +1,7 @@
 package matt.shell.context.escape
 
 import matt.lang.NEVER
-import matt.prim.str.mybuild.string
+import matt.prim.str.mybuild.api.string
 
 sealed interface EscapeStrategy {
     fun escape(s: String): String
