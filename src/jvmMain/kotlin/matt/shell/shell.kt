@@ -115,6 +115,7 @@ class ShellResultHandler<S : ShellResult>(
 
 enum class PrintInSeq { NO, LINES, CHARS }
 
+@Serializable
 data class ShellVerbosity(
     val printRunning: Boolean = false,
     val doNotPrintArgs: Boolean = false,
@@ -327,14 +328,16 @@ fun shells(
     workingDir: Folder? = null,
     env: Map<String, String> = mapOf(),
     op: ExecReturner.() -> Unit
-) {
-    ExecReturner(
-        executionContext = this@ReapingShellExecutionContext,
-        verbosity = verbosity,
-        workingDir = workingDir,
-        env = env,
-    ).apply(op)
-}
+) = ExecReturner(
+    executionContext = this@ReapingShellExecutionContext,
+    verbosity = verbosity,
+    workingDir = workingDir,
+    env = env,
+).run(op)
+
+context(ReapingShellExecutionContext)
+val shell: Shell<String>
+    get() = execReturners.silent
 
 context(ProcessReaper)
 fun shell(

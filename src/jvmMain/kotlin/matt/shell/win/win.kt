@@ -3,7 +3,7 @@ package matt.shell.win
 import matt.lang.model.file.FilePath
 import matt.log.DefaultLogger
 import matt.log.logger.Logger
-import matt.model.code.sys.NEW_MAC
+import matt.model.code.sys.NewMac
 import matt.prim.str.strings
 import matt.shell.Shell
 import matt.shell.ShellVerbosity
@@ -18,7 +18,7 @@ class WindowsGitBashReturner(
     private val verbosity: ShellVerbosity,
     val logger: Logger = DefaultLogger,
 ) : Shell<String> {
-    override val FilePath.pathOp get() = NEW_MAC.replaceFileSeparators(path)
+    override val FilePath.pathOp get() = NewMac.replaceFileSeparators(path)
     override fun sendCommand(vararg args: String): String {
         with(executionContext) {
             return shell(
