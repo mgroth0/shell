@@ -97,7 +97,7 @@ fun Process.transferAllOutputToStdOutInThreads(
     }
 }
 
-suspend fun Process.transferAllOutputToStdOutInJobs(
+fun Process.transferAllOutputToStdOutInJobs(
     scope: CoroutineScope,
     errTo: OutputType
 ) {

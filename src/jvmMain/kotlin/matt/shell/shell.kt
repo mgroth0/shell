@@ -11,6 +11,7 @@ import matt.lang.shutdown.preaper.ProcessReaper
 import matt.log.DefaultLogger
 import matt.log.SystemErrLogger
 import matt.log.SystemOutLogger
+import matt.log.warn.dumpStack
 import matt.log.warn.warn
 import matt.model.op.prints.Prints
 import matt.prim.str.joinWithSpaces
@@ -595,6 +596,7 @@ data /*value*/ class Command(val commands: List<String>) {
 
     override fun toString(): String {
         warn("don't use vague toString()")
+        dumpStack()
         return rawWithNoEscaping()
     }
 
