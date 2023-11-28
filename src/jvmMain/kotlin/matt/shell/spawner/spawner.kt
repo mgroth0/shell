@@ -14,6 +14,8 @@ import matt.shell.proc.ProcessKillSignal.SIGKILL
 import matt.shell.proc.kill
 import matt.shell.proc.proc
 import matt.shell.report.ShellErrException
+import java.io.InputStream
+import java.io.OutputStream
 import kotlin.time.Duration
 
 data class ExecProcessSpawner(
@@ -99,17 +101,44 @@ fun Process.transferAllOutputToStdOutInThreads(
 
 fun Process.transferAllOutputToStdOutInJobs(
     scope: CoroutineScope,
-    errTo: OutputType
+    errTo: OutputType,
+    buffered: Boolean = true
 ) {
     scope.launch {
-        errorStream.transferTo(
-            when (errTo) {
-                STDERR -> System.err
-                STDOUT -> System.out
-            }
-        )
+        if (buffered) {
+            errorStream.transferTo(
+                when (errTo) {
+                    STDERR -> System.err
+                    STDOUT -> System.out
+                }
+            )
+        } else {
+            errorStream.transferToUnBuffered(
+                when (errTo) {
+                    STDERR -> System.err
+                    STDOUT -> System.out
+                }
+            )
+        }
+
     }
     scope.launch {
-        inputStream.transferTo(System.out)
+        if (buffered) {
+            inputStream.transferTo(System.out)
+        } else {
+            inputStream.transferToUnBuffered(System.out)
+        }
+
     }
+}
+
+/*based on build in transferTo*/
+fun InputStream.transferToUnBuffered(out: OutputStream) {
+    do {
+        val read = this.read()
+        if (read >= 0) {
+            out.write(read);
+            out.flush()
+        }
+    } while (read >= 0)
 }

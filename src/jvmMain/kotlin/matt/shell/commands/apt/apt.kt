@@ -13,8 +13,13 @@ import matt.shell.commands.apt.options.AptOptionsBuilder
 interface LinuxPackageManager
 interface AptLike : LinuxPackageManager
 
+private const val WARNING = "Use apt-get. See: https://askubuntu.com/a/990838/557557"
+
+@Suppress("DEPRECATION")
+@Deprecated(WARNING)
 val <R> Shell<R>.apt get() = Apt(this)
 
+@Deprecated(WARNING)
 class Apt<R>(shell: Shell<R>) : ControlledShellProgram<R>(program = "apt", shell = shell), AptLike {
     fun update(
         options: Dsl<AptOptionsBuilder> = {}

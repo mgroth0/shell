@@ -3,10 +3,10 @@
 package matt.shell
 
 import kotlinx.serialization.Serializable
+import matt.lang.assertions.require.requireNot
 import matt.lang.go
 import matt.lang.model.file.FilePath
 import matt.lang.model.file.types.Folder
-import matt.lang.require.requireNot
 import matt.lang.shutdown.preaper.ProcessReaper
 import matt.log.DefaultLogger
 import matt.log.SystemErrLogger
@@ -295,19 +295,53 @@ interface ShellProgram<R> : UnControlledCommand<R>, Commandable<R> {
 }
 
 class SimpleShellProgram<R>(
-    val shell: Commandable<R>,
-    val program: String
+    private val shell: Commandable<R>,
+    private val program: String,
+    vararg val programArgs: String
 ) : ShellProgram<R> {
     override fun sendCommand(vararg args: String): R {
-        return shell.sendCommand(program, *args)
+        return shell.sendCommand(program, *programArgs, *args)
+    }
+
+    fun withAdditionalProgramArgs(vararg additionalProgramArgs: String) =
+        SimpleShellProgram(shell, program = program, programArgs = arrayOf(*programArgs, *additionalProgramArgs))
+}
+
+class SimpleShellToolbox<R>(
+    val shell: Commandable<R>,
+) : ShellProgram<R> {
+    override fun sendCommand(vararg args: String): R {
+        return shell.sendCommand(*args)
     }
 }
 
-abstract class ControlledShellProgram<R>(private val program: ShellProgram<R>) {
+abstract class ControlledShellProgram<R>(
+    private val program: ShellProgram<R>,
+    private vararg val programArgs: String
+) {
     constructor(
         program: String,
+        vararg programArgs: String,
         shell: Commandable<R>
-    ) : this(SimpleShellProgram(shell = shell, program = program))
+    ) : this(SimpleShellProgram(shell = shell, program = program, programArgs = programArgs))
+
+
+    constructor(
+        program: ControlledShellProgram<R>,
+        vararg programArgs: String,
+    ) : this(program.program, *program.programArgs, *programArgs)
+
+    fun withAdditionalProgramArgs() = program
+
+    protected fun sendCommand(vararg args: String): R {
+        return program.sendCommand(*programArgs, *args)
+    }
+}
+
+abstract class ControlledShellToolbox<R>(private val program: ShellProgram<R>) {
+    constructor(
+        shell: Commandable<R>
+    ) : this(SimpleShellToolbox(shell = shell))
 
     protected fun sendCommand(vararg args: String): R {
         return program.sendCommand(*args)
@@ -324,11 +358,11 @@ fun exec(
 ).waitFor() == 0
 
 context(ReapingShellExecutionContext)
-fun shells(
+fun <R> shells(
     verbosity: ShellVerbosity = ShellVerbosity.SILENT,
     workingDir: Folder? = null,
     env: Map<String, String> = mapOf(),
-    op: ExecReturner.() -> Unit
+    op: ExecReturner.() -> R
 ) = ExecReturner(
     executionContext = this@ReapingShellExecutionContext,
     verbosity = verbosity,

@@ -3,13 +3,14 @@ package matt.shell.scriptwriter.unix.bash
 import matt.lang.anno.SeeURL
 import matt.shell.context.ShellExecutionContext
 import matt.shell.context.escape.EscapeStrategy
+import matt.shell.context.shell.Bash
 import matt.shell.scriptwriter.unix.UnixShell
 import matt.shell.scriptwriter.unix.UnixWriterContext
 
 const val SANE_BASH_CONFIG_DEFAULT = true
 
 interface BashWriterContext : UnixWriterContext {
-    fun `while`(
+    fun pyWhile(
         condition: String,
         op: BashLoopContext.() -> Unit
     )
@@ -50,13 +51,15 @@ class BashWriter(
     fun setSaneConfig() = addRawLines("set -Eueo pipefail")
 
     init {
+        check(executionContext.language == Bash)
         if (saneBashConfig) {
             @SeeURL("https://stackoverflow.com/a/821419/6596010") setSaneConfig()
         }
     }
 
 
-    override fun `while`(
+    /*used to be `while`, but that was a buggy compilation error n 2.0.0-Beta1*/
+    override fun pyWhile(
         condition: String,
         op: BashLoopContext.() -> Unit
     ) {

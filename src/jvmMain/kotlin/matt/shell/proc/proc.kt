@@ -1,7 +1,6 @@
 package matt.shell.proc
 
 import matt.async.thread.namedThread
-import matt.lang.RUNTIME
 import matt.lang.consume
 import matt.lang.file.toJFile
 import matt.lang.function.Op
@@ -36,10 +35,20 @@ inline fun <R> Process.use(op: () -> R): R {
     try {
         return op()
     } finally {
-        descendants().forEachOrdered {
-            it.destroyForcibly()
+        if (isAlive) {
+            /*getting descendents turns out to be super expensive with large numbers of processes. Hits memory allocation hard and throws memory errors when we need to go through thousands of processes for example for imagemagick
+
+            ... point is avoid doing the things below whenever possible
+
+
+            behavior wise, this opens the door for sub-subprocesses to stay alive. But now I have a new technique to deal with that kind of issue, which is a better technique anyway.
+
+            */
+            descendants().forEachOrdered {
+                it.destroyForcibly()
+            }
+            destroyForcibly()
         }
-        destroyForcibly()
     }
 }
 
@@ -49,15 +58,13 @@ fun proc(
     vararg args: String,
     env: Map<String, String> = mapOf()
 ): Process {
-    val envP = env.map {
-        it.key + "=" + it.value
-    }.toTypedArray()
+    /*Runtime.exec is not quite deprecated, but ProcessBuilder is officially the recommended approach. The only reason Runtime.exec still exists is because so much old code uses it, and it is harmless. However, it might lack some of the performance and organizational perks of ProcessBuilder*/
+    val processBuilder = ProcessBuilder()
+    processBuilder.directory(wd?.toJFile())
+    processBuilder.environment().putAll(env)
+    processBuilder.command(*args)
     try {
-        val p = if (wd == null) RUNTIME.exec(
-            args, envP
-        ) else RUNTIME.exec(
-            args, envP, wd.toJFile()
-        )
+        val p = processBuilder.start()
         ensureProcessEndsAtShutdown(p)
         return p
     } catch (e: IOException) {
@@ -78,12 +85,11 @@ internal fun Process.await(
     verbosity: ShellVerbosity,
     outLogger: Prints = DefaultLogger,
     errLogger: Prints = DefaultLogger,
-    saveOutput: Boolean
+    saveOutput: Boolean,
 ): ShellResult {
+    var err = ""
 
-
-    var err =
-        ""/*MUST USE THREAD. IF IS TRY TO DO THIS SEQUENTIALLY, SOMETIMES EITHER ERR OR STDOUT IS SO LARGE THAT IT PREVENTS THE OTHER ONE FROM COMING THROUGH, CAUSING BLOCKING IF I TRY TO GET EACH IN SEQUENCE.*/
+    /*MUST USE THREAD. IF IS TRY TO DO THIS SEQUENTIALLY, SOMETIMES EITHER ERR OR STDOUT IS SO LARGE THAT IT PREVENTS THE OTHER ONE FROM COMING THROUGH, CAUSING BLOCKING IF I TRY TO GET EACH IN SEQUENCE.*/
 
     var out = ""
 
@@ -119,45 +125,21 @@ internal fun Process.await(
 
     val latch = SimpleThreadLatch()
     val t = namedThread(name = "errorReader") {
-        if (verbosity.outBeforeErr) {
-            latch.await()
-        }
-        if (saveOutput) {
-            err = savingInputOp(errorReader(), errLogger)
-        } else {
-            inputOp(errorReader(), errLogger)
-        }
-
+        if (verbosity.outBeforeErr) latch.await()
+        if (saveOutput) err = savingInputOp(errorReader(), errLogger)
+        else inputOp(errorReader(), errLogger)
     }
-
-
     try {
-        if (saveOutput) {
-            out = savingInputOp(inputReader(), outLogger)
-        } else {
-            inputOp(inputReader(), outLogger)
-        }
+        if (saveOutput) out = savingInputOp(inputReader(), outLogger)
+        else inputOp(inputReader(), outLogger)
     } finally {
         latch.open()
     }
-
-
     t.join()
     val code = waitFor()
 
-    return if (saveOutput) {
-        ShellFullResult(code = code, std = out, err = err)
-    } else {
-        ShellResult(code = code)
-    }
-
-
-    //  return out + err
-    /*
-    streams.joinToString("") {
-      it.bufferedReader().lines().toList().joinToString("\n")
-    }
-    */
+    return if (saveOutput) ShellFullResult(code = code, std = out, err = err)
+    else ShellResult(code = code)
 }
 
 val Process.streams: List<InputStream> get() = listOf(inputStream, errorStream)
@@ -199,7 +181,7 @@ enum class ProcessKillSignal {
 }
 
 @JvmInline
-value class Pid(internal val id: Long) {
+value class Pid(val id: Long) {
 
     context(ReapingShellExecutionContext)
     fun kill(

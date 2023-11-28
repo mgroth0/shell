@@ -1,7 +1,7 @@
 package matt.shell.scriptwriter.unix
 
 import matt.lang.inList
-import matt.lang.require.requireIs
+import matt.lang.assertions.require.requireIs
 import matt.prim.str.joinWithSpaces
 import matt.shell.Command
 import matt.shell.context.escape.EscapeStrategy

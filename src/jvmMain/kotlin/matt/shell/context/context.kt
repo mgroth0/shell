@@ -8,8 +8,16 @@ import matt.lang.platform.HasOs
 import matt.lang.platform.OsEnum
 import matt.lang.platform.OsEnum.Windows
 import matt.lang.shutdown.preaper.ProcessReaper
+import matt.shell.context.shell.Bash
+import matt.shell.context.shell.Powershell
+import matt.shell.context.shell.ShellLanguage
+import matt.shell.context.shell.UnixDirectCommandsOnly
+
 
 interface ShellExecutionContext {
+
+    val language: ShellLanguage
+
     val shellProgramPathContext: ShellProgramPathContext?
 
 //    val argumentsAreSeparated: Boolean?
@@ -21,6 +29,7 @@ interface ShellExecutionContext {
     val needsModules: Boolean?
     fun inSingularity(): ShellExecutionContext
     fun inSlurmJob(): ShellExecutionContext
+    fun withBash(): ShellExecutionContext
 }
 
 interface ReapingShellExecutionContext : ShellExecutionContext, ProcessReaper
@@ -37,9 +46,9 @@ fun ProcessReaper.withShellExecutionContext(shellExecutionContext: ShellExecutio
     ReapingShellExecutionContextImpl(shellExecutionContext, this)
 
 
-
-
-object UnknownShellExecutionContext : ShellExecutionContext {
+class UnknownShellExecutionContext(
+    override val language: ShellLanguage
+) : ShellExecutionContext {
     override val shellProgramPathContext = null
 
 //    override val argumentsAreSeparated = null
@@ -51,15 +60,20 @@ object UnknownShellExecutionContext : ShellExecutionContext {
 
     override fun inSingularity() = PartiallyKnownExecutionContext(
         inSingularityContainer = true,
-        needsModules = false
+        needsModules = false,
+        language = language
     )
 
     override fun inSlurmJob() = PartiallyKnownExecutionContext(
 
         shellProgramPathContext = DEFAULT_LINUX_PROGRAM_PATH_CONTEXT,
-        inSlurmJob = true
+        inSlurmJob = true,
+        language = language
 
     )
+
+    override fun withBash() = TODO()
+
 
 }
 
@@ -70,6 +84,7 @@ data class PartiallyKnownExecutionContext(
     override val inSingularityContainer: Boolean? = null,
     override val inSlurmJob: Boolean? = null,
     override val needsModules: Boolean? = null,
+    override val language: ShellLanguage
 ) : ShellExecutionContext {
     override fun inSingularity(): ShellExecutionContext {
         return copy(
@@ -82,6 +97,8 @@ data class PartiallyKnownExecutionContext(
         shellProgramPathContext = DEFAULT_LINUX_PROGRAM_PATH_CONTEXT,
         inSlurmJob = true
     )
+
+    override fun withBash() = copy(language = Bash)
 }
 
 data class KnownShellExecutionContext(
@@ -90,7 +107,8 @@ data class KnownShellExecutionContext(
 //    override val escapeContext: EscapeContext,
     override val inSingularityContainer: Boolean,
     override val inSlurmJob: Boolean,
-    override val needsModules: Boolean
+    override val needsModules: Boolean,
+    override val language: ShellLanguage
 ) : ShellExecutionContext {
     override fun inSingularity(): ShellExecutionContext {
         return copy(
@@ -103,6 +121,7 @@ data class KnownShellExecutionContext(
         shellProgramPathContext = DEFAULT_LINUX_PROGRAM_PATH_CONTEXT,
         inSlurmJob = true
     )
+    override fun withBash() = copy(language = Bash)
 }
 
 val DefaultLinuxExecutionContext by lazy {
@@ -111,7 +130,8 @@ val DefaultLinuxExecutionContext by lazy {
 //        escapeContext = NoEscaping,
 //        inSingularityContainer = false,
 //        inSlurmJob = false,
-//        needsModules = false
+//        needsModules = false,
+        language = UnixDirectCommandsOnly
     )
 }
 
@@ -122,6 +142,7 @@ val DefaultMacExecutionContext by lazy {
         inSingularityContainer = false,
         inSlurmJob = false,
         needsModules = false,
+        language = UnixDirectCommandsOnly
     )
 }
 
@@ -132,6 +153,7 @@ val DefaultWindowsExecutionContext by lazy {
         inSingularityContainer = false,
         inSlurmJob = false,
         needsModules = false,
+        language = Powershell
     )
 }
 
@@ -139,7 +161,8 @@ val DefaultWindowsExecutionContext by lazy {
 val HasOs.knownShellContextFromOs
     get() = when (os) {
         OsEnum.Linux -> PartiallyKnownExecutionContext(
-            shellProgramPathContext = DEFAULT_LINUX_PROGRAM_PATH_CONTEXT
+            shellProgramPathContext = DEFAULT_LINUX_PROGRAM_PATH_CONTEXT,
+            language = UnixDirectCommandsOnly
         )
 
         OsEnum.Mac   -> DefaultMacExecutionContext
