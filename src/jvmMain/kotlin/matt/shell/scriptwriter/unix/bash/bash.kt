@@ -10,7 +10,7 @@ import matt.shell.scriptwriter.unix.UnixWriterContext
 const val SANE_BASH_CONFIG_DEFAULT = true
 
 interface BashWriterContext : UnixWriterContext {
-    fun pyWhile(
+    fun bashWhile(
         condition: String,
         op: BashLoopContext.() -> Unit
     )
@@ -59,7 +59,7 @@ class BashWriter(
 
 
     /*used to be `while`, but that was a buggy compilation error n 2.0.0-Beta1*/
-    override fun pyWhile(
+    override fun bashWhile(
         condition: String,
         op: BashLoopContext.() -> Unit
     ) {

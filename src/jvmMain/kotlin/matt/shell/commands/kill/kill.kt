@@ -3,8 +3,8 @@ package matt.shell.commands.kill
 import matt.lang.opt
 import matt.log.warn.warn
 import matt.shell.Shell
-import matt.shell.proc.Pid
-import matt.shell.proc.ProcessKillSignal
+import matt.shell.proc.pid.Pid
+import matt.shell.proc.signal.ProcessKillSignal
 
 fun <R> Shell<R>.kill(
     pid: Pid,

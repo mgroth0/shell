@@ -30,7 +30,10 @@ fun <R> Shell<R>.bashC(
         executionContext = execContext,
         escapeStrategy =
         when {
+
             putInDoubleQuotes -> UnixEscapeDoubleQuotedStringContext
+            /*If I use UnixEscapeDoubleQuotedStringContext, spaces are escaped, causing the redis setup script to fail because openssl req arg has spaces...*/
+            /*putInDoubleQuotes -> UnixEscapeUnquotedStringContext*/
             /*execContext.argumentsAreSeparated ?: error("need to know if arguments are separated") -> NoEscaping*/
             else              -> NoEscaping /*UnixEscapeUnquotedStringContext*/
         }

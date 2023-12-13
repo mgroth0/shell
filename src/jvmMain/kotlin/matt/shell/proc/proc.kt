@@ -8,22 +8,13 @@ import matt.lang.model.file.FilePath
 import matt.lang.seq.charSequence
 import matt.lang.shutdown.preaper.ProcessReaper
 import matt.log.DefaultLogger
-import matt.log.warn.warn
 import matt.model.flowlogic.latch.SimpleThreadLatch
 import matt.model.op.prints.Prints
 import matt.prim.str.joinWithSpaces
-import matt.prim.str.lower
 import matt.shell.PrintInSeq.CHARS
 import matt.shell.PrintInSeq.LINES
 import matt.shell.PrintInSeq.NO
 import matt.shell.ShellVerbosity
-import matt.shell.commands.kill.kill
-import matt.shell.context.ReapingShellExecutionContext
-import matt.shell.execReturners
-import matt.shell.proc.ProcessKillSignal.SIGINT
-import matt.shell.proc.ProcessKillSignal.SIGKILL
-import matt.shell.proc.ProcessKillSignal.SIGTERM
-import matt.shell.report.NonZeroShellResult
 import matt.shell.report.ShellFullResult
 import matt.shell.report.ShellResult
 import matt.stream.forEachChar
@@ -151,20 +142,6 @@ fun Process.forEachErrChar(op: (String) -> Unit) = errorStream.bufferedReader().
     op(it)
 }
 
-//context (ShellExecutionContext, ShutdownExecutor)
-//fun Process.scheduleShutdownKill() {
-//    val processPid = pid()
-//    duringShutdown {
-//        if (isAlive) {
-//            /*IntelliJ seems to kill Sys.out or stop reading it or whatever during the shutdown process, so this won't be seen in the console if run through an IntelliJ Gradle Run Action*/
-//            println("killing process ($processPid)")
-//            kill(SIGKILL)
-//            println("killed process")
-//        } else {
-//            println("blender process ($processPid) is already dead")
-//        }
-//    }
-//}
 
 fun Process.whenDead(
     daemon: Boolean = true,
@@ -176,60 +153,7 @@ fun Process.whenDead(
     }
 }
 
-enum class ProcessKillSignal {
-    SIGTERM, SIGINT, SIGKILL
-}
-
-@JvmInline
-value class Pid(val id: Long) {
-
-    context(ReapingShellExecutionContext)
-    fun kill(
-        signal: ProcessKillSignal = SIGKILL,
-        doNotThrowIfNoSuchProcess: Boolean = false
-    ) {
-        fun op() = execReturners.silent.kill(this, signal)
-        if (doNotThrowIfNoSuchProcess) {
-            try {
-                op()
-            } catch (e: NonZeroShellResult) {
-                if (
-                    e.code == 47202 ||
-                    (e.code == 1 && e.output?.lower()
-                        ?.contains("no such process") == true)  /*error code must be different for different shells in this situation. Seems like it might be different between bash and zsh. I think 1 might be zsh and 47202 might be bash, but not sure. Another possibility is that 47202 was just a process ID and I mistook it for an error code once.*/
-                ) {
-                    warn("\"no such process\" when trying to kill $id")
-                } else {
-                    throw e
-                }
-            }
-        } else {
-            op()
-        }
-
-    }
-
-    context(ReapingShellExecutionContext)
-    fun terminate() {
-        kill(SIGTERM)
-    }
-
-    context(ReapingShellExecutionContext)
-    fun interrupt() {
-        kill(SIGINT)
-    }
-
-    context(ReapingShellExecutionContext)
-    fun kill() {
-        kill(SIGKILL)
-    }
 
 
-}
 
-fun Process.myPid() = Pid(pid())
-context (ReapingShellExecutionContext)
-fun Process.kill(signal: ProcessKillSignal = SIGKILL) = myPid().kill(signal)
 
-context (ReapingShellExecutionContext)
-fun Process.interrupt() = kill(SIGINT)

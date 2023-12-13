@@ -10,9 +10,9 @@ import matt.model.code.output.OutputType.STDOUT
 import matt.prim.str.strings
 import matt.shell.ConfigurableShell
 import matt.shell.context.ReapingShellExecutionContext
-import matt.shell.proc.ProcessKillSignal.SIGKILL
-import matt.shell.proc.kill
 import matt.shell.proc.proc
+import matt.shell.proc.signal.ProcessKillSignal.SIGKILL
+import matt.shell.proc.signal.kill
 import matt.shell.report.ShellErrException
 import java.io.InputStream
 import java.io.OutputStream
@@ -137,7 +137,7 @@ fun InputStream.transferToUnBuffered(out: OutputStream) {
     do {
         val read = this.read()
         if (read >= 0) {
-            out.write(read);
+            out.write(read)
             out.flush()
         }
     } while (read >= 0)
