@@ -1,5 +1,6 @@
 package matt.shell.scriptwriter
 
+import kotlinx.serialization.json.internal.FormatLanguage
 import matt.model.code.CodeGenerator
 import matt.model.code.SimpleFormatCode
 import matt.prim.str.joinWithSpaces
@@ -49,8 +50,8 @@ abstract class ScriptWriter(
 
 
 
-class ShellScript(override val code: String) : SimpleFormatCode<ShellScript> {
+class ShellScript(@FormatLanguage("Shell Script", "", "")  override val code: String) : SimpleFormatCode<ShellScript> {
     override fun formatted(): ShellScript {
-        TODO("Not yet implemented")
+        TODO()
     }
 }

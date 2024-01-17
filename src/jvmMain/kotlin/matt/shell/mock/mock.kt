@@ -8,5 +8,5 @@ object MockShell : Shell<Unit> {
     override fun sendCommand(vararg args: String) = Unit
 
     override val executionContext: ShellExecutionContext
-        get() = TODO("Not yet implemented")
+        get() = TODO()
 }
