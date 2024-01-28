@@ -1,6 +1,6 @@
 package matt.shell.win
 
-import matt.lang.model.file.FilePath
+import matt.lang.model.file.AnyResolvableFilePath
 import matt.lang.model.file.MacFileSystem
 import matt.lang.unsafeErr
 import matt.log.DefaultLogger
@@ -20,7 +20,7 @@ class WindowsGitBashReturner(
     private val verbosity: ShellVerbosity,
     val logger: Logger = DefaultLogger,
 ) : Shell<String> {
-    override val FilePath.pathOp
+    override val AnyResolvableFilePath.pathOp
         get() = NewMac.replaceFileSeparators(path, run {
             unsafeErr("am I sure its not a removable filesystem of a different case-sensitivity?")
             MacFileSystem

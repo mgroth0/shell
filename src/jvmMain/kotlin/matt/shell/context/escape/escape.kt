@@ -1,6 +1,7 @@
 package matt.shell.context.escape
 
 import matt.lang.NEVER
+import matt.lang.anno.Open
 import matt.prim.str.mybuild.api.string
 
 sealed interface EscapeStrategy {
@@ -55,8 +56,14 @@ class EscapeWithEscapeCharAndEscapeNewlines internal constructor(private val esc
 interface EscapeContext {
     val charsToEscape: List<Char>
     val escapeChar: Char
+
+    @Open
     fun escapeWithQuotes() = EscapeWithQuotes(this)
+
+    @Open
     fun escapeWithEscapeChar() = EscapeWithEscapeChar(this)
+
+    @Open
     fun escapeWithEscapeCharAndEscapeNewlines() = EscapeWithEscapeCharAndEscapeNewlines(this)
 }
 

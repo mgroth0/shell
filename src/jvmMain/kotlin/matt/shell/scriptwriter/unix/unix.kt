@@ -1,7 +1,7 @@
 package matt.shell.scriptwriter.unix
 
-import matt.lang.inList
 import matt.lang.assertions.require.requireIs
+import matt.lang.inList
 import matt.prim.str.joinWithSpaces
 import matt.shell.Command
 import matt.shell.context.escape.EscapeStrategy
@@ -59,14 +59,14 @@ abstract class UnixShell(
         addRawLines("#!${loader.command.commands.joinWithSpaces()}", index = 0)
     }
 
-    override fun setVariable(
+    final override fun setVariable(
         name: String,
         value: String
     ) {
         addRawLines("$name=$value")
     }
 
-    override fun createJob(command: Command) {
+    final override fun createJob(command: Command) {
         addRawLines(command.rawWithNoEscaping() + " &")
     }
 

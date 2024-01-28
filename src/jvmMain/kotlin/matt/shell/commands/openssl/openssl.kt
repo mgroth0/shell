@@ -1,6 +1,6 @@
 package matt.shell.commands.openssl
 
-import matt.lang.model.file.FsFile
+import matt.lang.model.file.AnyFsFile
 import matt.shell.ControlledShellProgram
 import matt.shell.Shell
 
@@ -17,11 +17,11 @@ class OpenSslCommand<R>(shell: Shell<R>) : ControlledShellProgram<R>(
     }
 
     fun generatePrivateKey(
-        outputKeyFile: FsFile
+        outputKeyFile: AnyFsFile
     ) = sendCommand("genrsa", "-out", outputKeyFile.path, PRIV_KEY_SIZE.toString())
 
     fun generateModernPrivateKey(
-        outputKeyFile: FsFile
+        outputKeyFile: AnyFsFile
     ) = sendCommand(
         "genpkey",
         "-algorithm",
@@ -33,8 +33,8 @@ class OpenSslCommand<R>(shell: Shell<R>) : ControlledShellProgram<R>(
     )
 
     fun createCertificateSigningRequest(
-        inputKeyFile: FsFile,
-        outputCsrFile: FsFile,
+        inputKeyFile: AnyFsFile,
+        outputCsrFile: AnyFsFile,
         ipAddress: String
     ) = sendCommand(
         "req",
@@ -53,9 +53,9 @@ class OpenSslCommand<R>(shell: Shell<R>) : ControlledShellProgram<R>(
     ChatGPT says that it is basically unheard of to create a certificate without an expiration date, and that while I could make one that expires in 100 years many systems do not allow expirations have 2038 due to the 2038 problem.
     * */
     fun generateSelfSignedCertificate(
-        inputCsrFile: FsFile,
-        inputKeyFile: FsFile,
-        outputCertFile: FsFile
+        inputCsrFile: AnyFsFile,
+        inputKeyFile: AnyFsFile,
+        outputCertFile: AnyFsFile
     ) = sendCommand(
         "x509",
         "-req",

@@ -1,6 +1,6 @@
 package matt.shell.report
 
-import matt.lang.model.file.FilePath
+import matt.lang.model.file.AnyResolvableFilePath
 import matt.log.textart.TEXT_BAR
 import matt.model.code.errreport.Report
 import matt.prim.str.elementsToString
@@ -8,7 +8,7 @@ import matt.prim.str.joinWithSpaces
 import matt.prim.str.mybuild.api.string
 
 class ShellErrorReport(
-    workingDir: FilePath?,
+    workingDir: AnyResolvableFilePath?,
     env: Map<String, String>,
     args: Array<out String>,
     result: ShellResult
@@ -54,9 +54,6 @@ class ShellErrorReport(
         }
     }
 
-    override fun toString(): String {
-        return text
-    }
 }
 
 class NonZeroShellResult(

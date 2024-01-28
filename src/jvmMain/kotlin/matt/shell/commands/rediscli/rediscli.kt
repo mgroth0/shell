@@ -1,7 +1,7 @@
 package matt.shell.commands.rediscli
 
 import matt.collect.itr.flatMapToArray
-import matt.lang.model.file.FsFile
+import matt.lang.model.file.AnyFsFile
 import matt.lang.optArray
 import matt.model.redis.RedisConfigurationPatch
 import matt.shell.ControlledShellProgram
@@ -11,9 +11,9 @@ private val DEFAULT_PW = null
 private val DEFAULT_TLS = null
 
 data class TlsConfig(
-    val certificate: FsFile,
-    val privateKey: FsFile,
-    val certificateAuthorityCertificate: FsFile
+    val certificate: AnyFsFile,
+    val privateKey: AnyFsFile,
+    val certificateAuthorityCertificate: AnyFsFile
 )
 
 fun <R : Any> Shell<R>.redisCli(

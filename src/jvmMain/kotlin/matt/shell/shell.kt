@@ -4,10 +4,11 @@ package matt.shell
 
 import kotlinx.serialization.Serializable
 import matt.async.thread.daemon
+import matt.lang.anno.Open
 import matt.lang.assertions.require.requireNot
 import matt.lang.go
-import matt.lang.model.file.FilePath
-import matt.lang.model.file.types.Folder
+import matt.lang.model.file.AnyResolvableFilePath
+import matt.lang.model.file.types.AnyFolder
 import matt.lang.shutdown.preaper.ProcessReaper
 import matt.log.DefaultLogger
 import matt.log.SystemErrLogger
@@ -39,6 +40,8 @@ annotation class ShellDSL
 @ShellDSL
 interface Commandable<R> {
     fun sendCommand(vararg args: String): R
+
+    @Open
     fun sendCommand(command: Command): R {
         return sendCommand(*command.commands.toTypedArray())
     }
@@ -46,7 +49,8 @@ interface Commandable<R> {
 
 @ShellDSL
 interface Shell<R : Any?> : MattService, Commandable<R> {
-    val FilePath.pathOp: String get() = path
+    @Open
+    val AnyResolvableFilePath.pathOp: String get() = path
     val executionContext: ShellExecutionContext
 }
 
@@ -60,14 +64,14 @@ val Shell<*>.needsModules get() = executionContext.needsModules ?: error("needsM
 
 interface ConfigurableWorkingDir<T> {
     fun withWorkingDir(
-        dir: Folder,
+        dir: AnyFolder,
         op: T.() -> Unit = {}
     ): T
 }
 
 interface DirectableShell<R, S : DirectableShell<R, S>> : Shell<R>, ConfigurableWorkingDir<S> {
     override fun withWorkingDir(
-        dir: Folder,
+        dir: AnyFolder,
         op: S.() -> Unit
     ): S
 }
@@ -86,7 +90,7 @@ interface ShellConfigurator<T : ShellConfigurator<T>> : ConfigurableWorkingDir<T
     ): T
 
     override fun withWorkingDir(
-        dir: Folder,
+        dir: AnyFolder,
         op: T.() -> Unit
     ): T
 
@@ -154,7 +158,7 @@ data class ShellVerbosity(
 fun interface ShellExecutor {
     context(ProcessReaper)
     fun execute(
-        workingDir: FilePath?,
+        workingDir: AnyResolvableFilePath?,
         env: Map<String, String>,
         args: Array<out String>,
         inputStream: InputStream?
@@ -192,7 +196,7 @@ class DefaultShellExecutor(
 
     context(ProcessReaper)
     override fun execute(
-        workingDir: FilePath?,
+        workingDir: AnyResolvableFilePath?,
         env: Map<String, String>,
         args: Array<out String>,
         inputStream: InputStream?
@@ -266,7 +270,7 @@ class ExecReturners(
 data class ExecReturner(
     override val executionContext: ReapingShellExecutionContext,
     private val verbosity: ShellVerbosity,
-    private val workingDir: Folder? = null,
+    private val workingDir: AnyFolder? = null,
     private val env: Map<String, String> = mapOf(),
     private val outLogger: Prints = SystemOutLogger.apply { includeTimeInfo = false },
     private val errLogger: Prints = SystemErrLogger.apply { includeTimeInfo = false },
@@ -287,7 +291,7 @@ data class ExecReturner(
         copy(env = this@ExecReturner.env + env).apply(op)
 
     override fun withWorkingDir(
-        dir: Folder,
+        dir: AnyFolder,
         op: ExecReturner.() -> Unit
     ) = copy(workingDir = dir).apply(op)
 
@@ -380,7 +384,7 @@ abstract class ControlledShellToolbox<R>(private val program: ShellProgram<R>) {
 
 context (ProcessReaper)
 fun exec(
-    wd: FilePath?,
+    wd: AnyResolvableFilePath?,
     vararg args: String
 ) = proc(
     wd,
@@ -390,7 +394,7 @@ fun exec(
 context(ReapingShellExecutionContext)
 fun <R> shells(
     verbosity: ShellVerbosity = ShellVerbosity.SILENT,
-    workingDir: Folder? = null,
+    workingDir: AnyFolder? = null,
     env: Map<String, String> = mapOf(),
     op: ExecReturner.() -> R
 ) = ExecReturner(
@@ -407,7 +411,7 @@ val shell: Shell<String>
 context(ProcessReaper)
 fun shell(
     vararg args: String,
-    workingDir: Folder? = null,
+    workingDir: AnyFolder? = null,
     env: Map<String, String> = mapOf(),
     verbosity: ShellVerbosity = Companion.DEFAULT,
     outLogger: Prints = DefaultLogger,
@@ -432,7 +436,7 @@ fun shell(
 context(ReapingShellExecutionContext)
 fun streamingMemorySafeShells(
     verbosity: ShellVerbosity = Companion.SILENT,
-    workingDir: Folder? = null,
+    workingDir: AnyFolder? = null,
     env: Map<String, String> = mapOf(),
     op: ExecStreamer.() -> Unit
 ) {
@@ -449,7 +453,7 @@ fun streamingMemorySafeShells(
 context(ProcessReaper)
 fun streamingMemorySafeShell(
     vararg args: String,
-    workingDir: Folder? = null,
+    workingDir: AnyFolder? = null,
     env: Map<String, String> = mapOf(),
     verbosity: ShellVerbosity = Companion.DEFAULT,
     logger: Prints = DefaultLogger,
@@ -468,7 +472,7 @@ fun streamingMemorySafeShell(
 
 abstract class ShellRunner<S : ShellResult>(
     private vararg val args: String,
-    private val workingDir: Folder? = null,
+    private val workingDir: AnyFolder? = null,
     private val env: Map<String, String> = mapOf(),
     private val verbosity: ShellVerbosity = Companion.DEFAULT,
     private val outLogger: Prints = DefaultLogger,
@@ -523,7 +527,7 @@ abstract class ShellRunner<S : ShellResult>(
 
 class MemSafeShellRunner(
     vararg args: String,
-    workingDir: Folder? = null,
+    workingDir: AnyFolder? = null,
     env: Map<String, String> = mapOf(),
     verbosity: ShellVerbosity = Companion.DEFAULT,
     logger: Prints = DefaultLogger,
@@ -548,7 +552,7 @@ class MemSafeShellRunner(
 
 class FullResultShellRunner(
     vararg args: String,
-    workingDir: Folder? = null,
+    workingDir: AnyFolder? = null,
     env: Map<String, String> = mapOf(),
     verbosity: ShellVerbosity = Companion.DEFAULT,
     errLogger: Prints = DefaultLogger,
@@ -606,7 +610,7 @@ class ExecStreamers(
 data class ExecStreamer(
     override val executionContext: ShellExecutionContext,
     private val verbosity: ShellVerbosity,
-    private val workingDir: Folder? = null,
+    private val workingDir: AnyFolder? = null,
     private val env: Map<String, String> = mapOf(),
     private val logger: Prints = SystemOutLogger.apply { includeTimeInfo = false },
     private val resultHandler: ShellResultHandler<ShellResult>? = null,
@@ -625,7 +629,7 @@ data class ExecStreamer(
         copy(env = this@ExecStreamer.env + env).apply(op)
 
     override fun withWorkingDir(
-        dir: Folder,
+        dir: AnyFolder,
         op: ExecStreamer.() -> Unit
     ) = copy(workingDir = dir).apply(op)
 
@@ -678,7 +682,7 @@ data /*value*/ class Command(val commands: List<String>) {
 
     infix fun pipedTo(consumer: Command) = Command(commands + "|" + consumer.commands)
 
-    infix fun pipedToFile(file: FilePath) = Command(commands + ">" + file.path)
+    infix fun pipedToFile(file: AnyResolvableFilePath) = Command(commands + ">" + file.path)
 
     infix fun and(consumer: Command) = Command(commands + "&&" + consumer.commands)
 

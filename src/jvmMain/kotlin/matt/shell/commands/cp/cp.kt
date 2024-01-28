@@ -2,14 +2,14 @@ package matt.shell.commands.cp
 
 import matt.lang.If
 import matt.lang.anno.SeeURL
-import matt.lang.model.file.FsFile
+import matt.lang.model.file.AnyFsFile
 import matt.shell.Shell
 
 
 @SeeURL("https://unix.stackexchange.com/questions/228597/how-to-copy-a-folder-recursively-in-an-idempotent-way-using-cp")
 fun <R> Shell<R>.cp(
-    from: FsFile,
-    to: FsFile,
+    from: AnyFsFile,
+    to: AnyFsFile,
     recursive: Boolean = false,
     force: Boolean = false,
     useDirIdempotencyTrick: Boolean = false

@@ -1,7 +1,7 @@
 package matt.shell.commands.mkdir
 
 import matt.lang.If
-import matt.lang.model.file.FilePath
+import matt.lang.model.file.AnyResolvableFilePath
 import matt.shell.Shell
 
 
@@ -23,7 +23,7 @@ fun <R> Shell<R>.mkdir(
 
 
 fun <R> Shell<R>.mkdir(
-    file: FilePath,
+    file: AnyResolvableFilePath,
     p: Boolean = false
 ) = apply {
     mkdir(

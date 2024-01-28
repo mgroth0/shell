@@ -3,7 +3,7 @@ package matt.shell.spawner
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import matt.async.thread.namedThread
-import matt.lang.model.file.types.Folder
+import matt.lang.model.file.types.AnyFolder
 import matt.model.code.output.OutputType
 import matt.model.code.output.OutputType.STDERR
 import matt.model.code.output.OutputType.STDOUT
@@ -21,7 +21,7 @@ import kotlin.time.Duration
 data class ExecProcessSpawner(
     override val executionContext: ReapingShellExecutionContext,
     private val throwOnErr: Boolean = false,
-    val workingDir: Folder? = null,
+    val workingDir: AnyFolder? = null,
     val env: Map<String, String> = mapOf(),
     val timeout: Duration? = null
 ) : ConfigurableShell<Process, ExecProcessSpawner> {
@@ -61,7 +61,7 @@ data class ExecProcessSpawner(
     }
 
     override fun withWorkingDir(
-        dir: Folder,
+        dir: AnyFolder,
         op: ExecProcessSpawner.() -> Unit
     ): ExecProcessSpawner {
         return copy(workingDir = dir)

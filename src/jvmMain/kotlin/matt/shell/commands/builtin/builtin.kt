@@ -1,6 +1,6 @@
 package matt.shell.commands.builtin
 
-import matt.lang.model.file.FilePath
+import matt.lang.model.file.AnyResolvableFilePath
 import matt.shell.Shell
 
 fun <R> Shell<R>.exit() = sendCommand("exit")
@@ -20,7 +20,7 @@ infix fun <R> Shell<R>.cd(dir: String) = sendCommand(
     dir
 )
 
-infix fun <R> Shell<R>.cd(file: FilePath): R = cd(file.path)
+infix fun <R> Shell<R>.cd(file: AnyResolvableFilePath): R = cd(file.path)
 
 fun <R> Shell<R>.echo(vararg args: String) = sendCommand(
     "echo",
@@ -49,7 +49,7 @@ fun <R> Shell<R>.writeFile(
 )
 
 fun <R> Shell<R>.writeFile(
-    file: FilePath,
+    file: AnyResolvableFilePath,
     s: String
 ) = writeFile(
     filename = file.path,

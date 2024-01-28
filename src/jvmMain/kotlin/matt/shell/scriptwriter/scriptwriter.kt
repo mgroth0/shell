@@ -24,14 +24,14 @@ abstract class ScriptWriter(
     val scriptLines: List<String> = scriptLinesM
 
 
-    override fun sendCommand(vararg args: String) {
+    final override fun sendCommand(vararg args: String) {
         scriptLinesM += args.joinWithSpaces {
             escapeStrategy.escape(it)
         }
     }
 
 
-    override fun addRawLines(vararg lines: String, index: Int?) {
+    final override fun addRawLines(vararg lines: String, index: Int?) {
         if (index != null) {
             scriptLinesM.addAll(0, lines.toList())
         } else scriptLinesM.addAll(lines)
@@ -43,7 +43,7 @@ abstract class ScriptWriter(
     val script get() = scriptLinesM.joinToString(separator = lineDelimiter) { it }
 
 
-    override fun generate(): ShellScript {
+    final override fun generate(): ShellScript {
         return ShellScript(script)
     }
 }

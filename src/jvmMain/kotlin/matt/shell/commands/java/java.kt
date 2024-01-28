@@ -1,7 +1,7 @@
 package matt.shell.commands.java
 
 import matt.lang.classname.JvmQualifiedClassName
-import matt.lang.model.file.FilePath
+import matt.lang.model.file.AnyResolvableFilePath
 import matt.lang.optArray
 import matt.model.code.jvm.JavaExecArgs
 import matt.shell.ControlledShellProgram
@@ -29,7 +29,7 @@ class JavaCommand<R>(shell: Shell<R>) : ControlledShellProgram<R>(
     fun executeJar(
         jvmArgs: JavaExecArgs,
         classpath: List<String>? = null,
-        jar: FilePath,
+        jar: AnyResolvableFilePath,
         commandLineArgs: Array<out String> = arrayOf()
     ) = executeCommon(
         jvmArgs = jvmArgs,

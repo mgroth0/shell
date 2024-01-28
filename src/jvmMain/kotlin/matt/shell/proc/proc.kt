@@ -4,7 +4,7 @@ import matt.async.thread.namedThread
 import matt.lang.consume
 import matt.lang.file.toJFile
 import matt.lang.function.Op
-import matt.lang.model.file.FilePath
+import matt.lang.model.file.AnyResolvableFilePath
 import matt.lang.seq.charSequence
 import matt.lang.shutdown.preaper.ProcessReaper
 import matt.log.DefaultLogger
@@ -45,7 +45,7 @@ inline fun <R> Process.use(op: () -> R): R {
 
 context(ProcessReaper)
 fun proc(
-    wd: FilePath?,
+    wd: AnyResolvableFilePath?,
     vararg args: String,
     env: Map<String, String> = mapOf()
 ): Process {

@@ -1,7 +1,7 @@
 package matt.shell.commands.rm
 
 import matt.lang.If
-import matt.lang.model.file.FilePath
+import matt.lang.model.file.AnyResolvableFilePath
 import matt.shell.Shell
 import matt.shell.commands.rm.RmOptions.Force
 import matt.shell.commands.rm.RmOptions.Recursive
@@ -10,7 +10,7 @@ import matt.shell.context.shell.Powershell
 import matt.shell.context.shell.UnixDirectCommands
 
 fun <R> Shell<R>.rm(
-    file: FilePath,
+    file: AnyResolvableFilePath,
     rf: Boolean
 ): R = rm(file.path, rf = rf)
 
@@ -23,7 +23,7 @@ fun <R> Shell<R>.rm(
 )
 
 fun <R> Shell<R>.rm(
-    file: FilePath,
+    file: AnyResolvableFilePath,
     vararg options: RmOptions
 ): R = rm(
     file.path,
