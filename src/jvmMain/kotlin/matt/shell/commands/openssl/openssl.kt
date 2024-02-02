@@ -51,7 +51,7 @@ class OpenSslCommand<R>(shell: Shell<R>) : ControlledShellProgram<R>(
 
     /*
     ChatGPT says that it is basically unheard of to create a certificate without an expiration date, and that while I could make one that expires in 100 years many systems do not allow expirations have 2038 due to the 2038 problem.
-    * */
+     * */
     fun generateSelfSignedCertificate(
         inputCsrFile: AnyFsFile,
         inputKeyFile: AnyFsFile,

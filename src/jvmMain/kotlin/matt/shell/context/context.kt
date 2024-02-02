@@ -86,12 +86,10 @@ data class PartiallyKnownExecutionContext(
     override val needsModules: Boolean? = null,
     override val language: ShellLanguage
 ) : ShellExecutionContext {
-    override fun inSingularity(): ShellExecutionContext {
-        return copy(
-            inSingularityContainer = true,
-            needsModules = false
-        )
-    }
+    override fun inSingularity(): ShellExecutionContext = copy(
+        inSingularityContainer = true,
+        needsModules = false
+    )
 
     override fun inSlurmJob() = copy(
         shellProgramPathContext = DEFAULT_LINUX_PROGRAM_PATH_CONTEXT,
@@ -110,12 +108,10 @@ data class KnownShellExecutionContext(
     override val needsModules: Boolean,
     override val language: ShellLanguage
 ) : ShellExecutionContext {
-    override fun inSingularity(): ShellExecutionContext {
-        return copy(
-            inSingularityContainer = true,
-            needsModules = false
-        )
-    }
+    override fun inSingularity(): ShellExecutionContext = copy(
+        inSingularityContainer = true,
+        needsModules = false
+    )
 
     override fun inSlurmJob() = copy(
         shellProgramPathContext = DEFAULT_LINUX_PROGRAM_PATH_CONTEXT,

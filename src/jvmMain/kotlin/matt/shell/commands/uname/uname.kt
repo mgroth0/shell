@@ -24,8 +24,6 @@ private fun correctUnameCommandLineForThisRuntime(): List<String> {
     return commandLine + "-m"
 }
 
-private fun correctUnamePathForThisRuntime(): String {
-    return if (OS == Windows) "/usr/bin/uname" else listOf(
-        "/usr/bin/uname", "/bin/uname" /*vagrant, singularity*/
-    ).first { Path(it).exists() }
-}
+private fun correctUnamePathForThisRuntime(): String = if (OS == Windows) "/usr/bin/uname" else listOf(
+    "/usr/bin/uname", "/bin/uname" /*vagrant, singularity*/
+).first { Path(it).exists() }

@@ -68,19 +68,15 @@ class AptGet<R>(shell: Shell<R>) : ControlledShellProgram<R>(shell = shell, prog
         vararg packages: String,
         autoConfirm: Boolean = DEFAULT_AUTO_CONFIRM,
         autoRemove: Boolean = DEFAULT_AUTO_REMOVE
-    ): R {
-        return sendCommand(
-            "purge",
-            *If(autoConfirm).then("-y"),
-            *If(autoRemove).then("--autoremove"),
-            *packages
-        )
-    }
+    ): R = sendCommand(
+        "purge",
+        *If(autoConfirm).then("-y"),
+        *If(autoRemove).then("--autoremove"),
+        *packages
+    )
 
-    fun clean(): R {
-        return sendCommand(
-            "clean",
-        )
-    }
+    fun clean(): R = sendCommand(
+        "clean",
+    )
 }
 

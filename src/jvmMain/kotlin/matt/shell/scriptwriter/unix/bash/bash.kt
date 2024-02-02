@@ -45,8 +45,8 @@ class BashWriter(
     escapeStrategy: EscapeStrategy,
     @SeeURL("https://stackoverflow.com/questions/821396/aborting-a-shell-script-if-any-command-returns-a-non-zero-value") private val saneBashConfig: Boolean = SANE_BASH_CONFIG_DEFAULT
 ) : UnixShell(
-    escapeStrategy = escapeStrategy
-), BashWriterContext {
+        escapeStrategy = escapeStrategy
+    ), BashWriterContext {
 
     fun setSaneConfig() = addRawLines("set -Eueo pipefail")
 

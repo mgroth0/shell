@@ -27,9 +27,9 @@ class RedisCliCommand<R : Any>(
     private val password: String? = DEFAULT_PW,
     private val tls: TlsConfig? = DEFAULT_TLS
 ) : ControlledShellProgram<R>(
-    shell = shell,
-    program = "redis-cli"
-) {
+        shell = shell,
+        program = "redis-cli"
+    ) {
 
 
     fun configSet(

@@ -30,7 +30,7 @@ object WindowsPowershellEscapeContext : WindowsEscapeContext {
             jdk.jpackage.internal.PackagerException: Error: Invalid Option: [.coroutines.debug]
 
 
-        * */
+         * */
         '.'
     )
     override val escapeChar = '`'

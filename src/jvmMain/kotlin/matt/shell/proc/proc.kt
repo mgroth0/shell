@@ -34,7 +34,7 @@ inline fun <R> Process.use(op: () -> R): R {
 
             behavior wise, this opens the door for sub-subprocesses to stay alive. But now I have a new technique to deal with that kind of issue, which is a better technique anyway.
 
-            */
+             */
             descendants().forEachOrdered {
                 it.destroyForcibly()
             }

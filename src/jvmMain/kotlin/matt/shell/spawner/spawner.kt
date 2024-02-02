@@ -56,30 +56,22 @@ data class ExecProcessSpawner(
         return p
     }
 
-    override fun doNotPrintCommand(op: ExecProcessSpawner.() -> Unit): ExecProcessSpawner {
-        return this
-    }
+    override fun doNotPrintCommand(op: ExecProcessSpawner.() -> Unit): ExecProcessSpawner = this
 
     override fun withWorkingDir(
         dir: AnyFolder,
         op: ExecProcessSpawner.() -> Unit
-    ): ExecProcessSpawner {
-        return copy(workingDir = dir)
-    }
+    ): ExecProcessSpawner = copy(workingDir = dir)
 
     override fun withUpdatedEnv(
         env: Map<String, String>,
         op: ExecProcessSpawner.() -> Unit
-    ): ExecProcessSpawner {
-        return copy(env = this.env + env).apply(op)
-    }
+    ): ExecProcessSpawner = copy(env = this.env + env).apply(op)
 
     override fun withEnv(
         env: Map<String, String>,
         op: ExecProcessSpawner.() -> Unit
-    ): ExecProcessSpawner {
-        return copy(env = env).apply(op)
-    }
+    ): ExecProcessSpawner = copy(env = env).apply(op)
 }
 
 

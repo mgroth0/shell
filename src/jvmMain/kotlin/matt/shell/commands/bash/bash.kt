@@ -29,15 +29,15 @@ fun <R> Shell<R>.bashC(
     BashWriter(
         executionContext = execContext,
         escapeStrategy =
-        when {
+            when {
 
-            putInDoubleQuotes -> UnixEscapeDoubleQuotedStringContext
-            /*If I use UnixEscapeDoubleQuotedStringContext, spaces are escaped, causing the redis setup script to fail because openssl req arg has spaces...*/
-            /*putInDoubleQuotes -> UnixEscapeUnquotedStringContext*/
-            /*execContext.argumentsAreSeparated ?: error("need to know if arguments are separated") -> NoEscaping*/
-            else              -> NoEscaping /*UnixEscapeUnquotedStringContext*/
-        }
-            /*(if (putInDoubleQuotes) UnixEscapeDoubleQuotedStringContext else UnixEscapeUnquotedStringContext)*/.escapeWithEscapeChar(),
+                putInDoubleQuotes -> UnixEscapeDoubleQuotedStringContext
+                /*If I use UnixEscapeDoubleQuotedStringContext, spaces are escaped, causing the redis setup script to fail because openssl req arg has spaces...*/
+                /*putInDoubleQuotes -> UnixEscapeUnquotedStringContext*/
+                /*execContext.argumentsAreSeparated ?: error("need to know if arguments are separated") -> NoEscaping*/
+                else              -> NoEscaping /*UnixEscapeUnquotedStringContext*/
+            }
+                /*(if (putInDoubleQuotes) UnixEscapeDoubleQuotedStringContext else UnixEscapeUnquotedStringContext)*/.escapeWithEscapeChar(),
         saneBashConfig = saneBashConfig
     ).apply(op).script.let {
         if (putInDoubleQuotes) "\"$it\"" else it

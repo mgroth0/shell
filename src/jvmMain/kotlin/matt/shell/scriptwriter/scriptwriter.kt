@@ -43,9 +43,7 @@ abstract class ScriptWriter(
     val script get() = scriptLinesM.joinToString(separator = lineDelimiter) { it }
 
 
-    final override fun generate(): ShellScript {
-        return ShellScript(script)
-    }
+    final override fun generate(): ShellScript = ShellScript(script)
 }
 
 

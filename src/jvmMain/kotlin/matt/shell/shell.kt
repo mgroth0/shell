@@ -42,9 +42,7 @@ interface Commandable<R> {
     fun sendCommand(vararg args: String): R
 
     @Open
-    fun sendCommand(command: Command): R {
-        return sendCommand(*command.commands.toTypedArray())
-    }
+    fun sendCommand(command: Command): R = sendCommand(*command.commands.toTypedArray())
 }
 
 @ShellDSL
@@ -333,9 +331,7 @@ class SimpleShellProgram<R>(
     private val program: String,
     vararg val programArgs: String
 ) : ShellProgram<R> {
-    override fun sendCommand(vararg args: String): R {
-        return shell.sendCommand(program, *programArgs, *args)
-    }
+    override fun sendCommand(vararg args: String): R = shell.sendCommand(program, *programArgs, *args)
 
     fun withAdditionalProgramArgs(vararg additionalProgramArgs: String) =
         SimpleShellProgram(shell, program = program, programArgs = arrayOf(*programArgs, *additionalProgramArgs))
@@ -344,9 +340,7 @@ class SimpleShellProgram<R>(
 class SimpleShellToolbox<R>(
     val shell: Commandable<R>,
 ) : ShellProgram<R> {
-    override fun sendCommand(vararg args: String): R {
-        return shell.sendCommand(*args)
-    }
+    override fun sendCommand(vararg args: String): R = shell.sendCommand(*args)
 }
 
 abstract class ControlledShellProgram<R>(
@@ -367,9 +361,7 @@ abstract class ControlledShellProgram<R>(
 
     fun withAdditionalProgramArgs() = program
 
-    protected fun sendCommand(vararg args: String): R {
-        return program.sendCommand(*programArgs, *args)
-    }
+    protected fun sendCommand(vararg args: String): R = program.sendCommand(*programArgs, *args)
 }
 
 abstract class ControlledShellToolbox<R>(private val program: ShellProgram<R>) {
@@ -377,9 +369,7 @@ abstract class ControlledShellToolbox<R>(private val program: ShellProgram<R>) {
         shell: Commandable<R>
     ) : this(SimpleShellToolbox(shell = shell))
 
-    protected fun sendCommand(vararg args: String): R {
-        return program.sendCommand(*args)
-    }
+    protected fun sendCommand(vararg args: String): R = program.sendCommand(*args)
 }
 
 context (ProcessReaper)
@@ -534,15 +524,15 @@ class MemSafeShellRunner(
     resultHandler: ShellResultHandler<ShellResult>? = null,
     inputStream: InputStream?
 ) : ShellRunner<ShellResult>(
-    args = args,
-    workingDir = workingDir,
-    env = env,
-    verbosity = verbosity,
-    outLogger = logger,
-    errLogger = logger,
-    resultHandler = resultHandler,
-    inputStream = inputStream
-) {
+        args = args,
+        workingDir = workingDir,
+        env = env,
+        verbosity = verbosity,
+        outLogger = logger,
+        errLogger = logger,
+        resultHandler = resultHandler,
+        inputStream = inputStream
+    ) {
     init {
         requireNot(verbosity.explainOutput)
     }
@@ -562,17 +552,17 @@ class FullResultShellRunner(
     resultHandler: ShellResultHandler<ShellFullResult>? = null,
     inputStream: InputStream?
 ) : ShellRunner<ShellFullResult>(
-    args = args,
-    workingDir = workingDir,
-    env = env,
-    verbosity = verbosity,
-    errLogger = errLogger,
-    outLogger = outLogger,
-    metaLogger = metaLogger,
-    resultHandler = resultHandler,
-    executorFactory = executorFactory,
-    inputStream = inputStream
-) {
+        args = args,
+        workingDir = workingDir,
+        env = env,
+        verbosity = verbosity,
+        errLogger = errLogger,
+        outLogger = outLogger,
+        metaLogger = metaLogger,
+        resultHandler = resultHandler,
+        executorFactory = executorFactory,
+        inputStream = inputStream
+    ) {
     override val saveOutput = true
 }
 
