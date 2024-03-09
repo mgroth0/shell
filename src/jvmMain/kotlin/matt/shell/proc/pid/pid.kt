@@ -1,9 +1,9 @@
 package matt.shell.proc.pid
 
-import matt.log.warn.warn
+import matt.log.warn.common.warn
 import matt.prim.str.lower
 import matt.shell.commands.kill.kill
-import matt.shell.context.ReapingShellExecutionContext
+import matt.shell.commonj.context.ReapingShellExecutionContext
 import matt.shell.execReturners
 import matt.shell.proc.signal.ProcessKillSignal
 import matt.shell.proc.signal.ProcessKillSignal.SIGINT
@@ -28,8 +28,10 @@ value class Pid(val id: Long) {
             } catch (e: NonZeroShellResult) {
                 if (
                     e.code == 47202 ||
-                    (e.code == 1 && e.output?.lower()
-                        ?.contains("no such process") == true)  /*error code must be different for different shells in this situation. Seems like it might be different between bash and zsh. I think 1 might be zsh and 47202 might be bash, but not sure. Another possibility is that 47202 was just a process ID and I mistook it for an error code once.*/
+                    (
+                        e.code == 1 && e.output?.lower()
+                            ?.contains("no such process") == true
+                    )  /*error code must be different for different shells in this situation. Seems like it might be different between bash and zsh. I think 1 might be zsh and 47202 might be bash, but not sure. Another possibility is that 47202 was just a process ID and I mistook it for an error code once.*/
                 ) {
                     warn("\"no such process\" when trying to kill $id")
                 } else {
@@ -39,7 +41,6 @@ value class Pid(val id: Long) {
         } else {
             op()
         }
-
     }
 
     context(ReapingShellExecutionContext)
@@ -56,6 +57,4 @@ value class Pid(val id: Long) {
     fun kill() {
         kill(SIGKILL)
     }
-
-
 }

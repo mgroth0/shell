@@ -1,8 +1,8 @@
 package matt.shell.commands.pip
 
-import matt.lang.If
+import matt.lang.common.If
 import matt.shell.ControlledShellProgram
-import matt.shell.Shell
+import matt.shell.common.Shell
 
 
 /*unsafe because it is not called from a conda environment*/
@@ -16,7 +16,7 @@ class PipCommand<R>(shell: Shell<R>) : ControlledShellProgram<R>(
         quiet: Boolean = false,
         upgrade: Boolean = false,
         noDeps: Boolean = false,
-        vararg packages: String,
+        vararg packages: String
     ) = install(
         quiet = quiet,
         upgrade = upgrade,
@@ -28,7 +28,7 @@ class PipCommand<R>(shell: Shell<R>) : ControlledShellProgram<R>(
     fun installEditable(
         quiet: Boolean = false,
         noDeps: Boolean = false,
-        pack: String,
+        pack: String
     ) = install(
         quiet = quiet,
         upgrade = false,
@@ -41,12 +41,12 @@ class PipCommand<R>(shell: Shell<R>) : ControlledShellProgram<R>(
         quiet: Boolean = false,
         upgrade: Boolean = false,
         noDeps: Boolean = false,
-        vararg args: String,
+        vararg args: String
     ) = sendCommand(
         "install",
         *If(quiet).then("-q"),
         *If(upgrade).then("--upgrade"),
         *If(noDeps).then("--no-deps"),
-        *args,
+        *args
     )
 }

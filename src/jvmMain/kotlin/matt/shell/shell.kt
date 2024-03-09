@@ -1,56 +1,36 @@
-@file:JvmName("ShellJvmKt")
 
 package matt.shell
 
 import kotlinx.serialization.Serializable
 import matt.async.thread.daemon
-import matt.lang.anno.Open
 import matt.lang.assertions.require.requireNot
-import matt.lang.go
+import matt.lang.common.go
 import matt.lang.model.file.AnyResolvableFilePath
 import matt.lang.model.file.types.AnyFolder
 import matt.lang.shutdown.preaper.ProcessReaper
-import matt.log.DefaultLogger
-import matt.log.SystemErrLogger
-import matt.log.SystemOutLogger
-import matt.log.warn.dumpStack
-import matt.log.warn.warn
+import matt.lang.shutdown.preaper.use
+import matt.log.j.DefaultLogger
+import matt.log.j.SystemErrLogger
+import matt.log.j.SystemOutLogger
 import matt.model.op.prints.Prints
-import matt.prim.str.joinWithSpaces
 import matt.prim.str.strings
-import matt.service.MattService
 import matt.shell.PrintInSeq.CHARS
 import matt.shell.PrintInSeq.LINES
 import matt.shell.PrintInSeq.NO
 import matt.shell.ShellVerbosity.Companion
-import matt.shell.context.ReapingShellExecutionContext
-import matt.shell.context.ShellExecutionContext
+import matt.shell.common.Commandable
+import matt.shell.common.Shell
+import matt.shell.common.ShellDSL
+import matt.shell.common.context.ShellExecutionContext
+import matt.shell.commonj.CommandReturner
+import matt.shell.commonj.context.ReapingShellExecutionContext
 import matt.shell.proc.await
 import matt.shell.proc.proc
-import matt.shell.proc.use
 import matt.shell.report.NonZeroShellResult
 import matt.shell.report.ShellErrorReport
 import matt.shell.report.ShellFullResult
 import matt.shell.report.ShellResult
 import java.io.InputStream
-
-@DslMarker
-annotation class ShellDSL
-
-@ShellDSL
-interface Commandable<R> {
-    fun sendCommand(vararg args: String): R
-
-    @Open
-    fun sendCommand(command: Command): R = sendCommand(*command.commands.toTypedArray())
-}
-
-@ShellDSL
-interface Shell<R : Any?> : MattService, Commandable<R> {
-    @Open
-    val AnyResolvableFilePath.pathOp: String get() = path
-    val executionContext: ShellExecutionContext
-}
 
 val Shell<*>.programPathContext
     get() = executionContext.shellProgramPathContext ?: error("programPathContext is required to be known")
@@ -134,22 +114,26 @@ data class ShellVerbosity(
         val SILENT = ShellVerbosity()
         val DEFAULT = SILENT
         val JUST_START = ShellVerbosity(printRunning = true)
-        val START_AND_RAW_OUTPUT = ShellVerbosity(
-            printRunning = true,
-            printRawOutput = true
-        )
-        val START_AND_EXPLAIN_OUTPUT = ShellVerbosity(
-            printRunning = true,
-            explainOutput = true
-        )
-        val STREAM = ShellVerbosity(
-            printRunning = true,
-            printInSequence = LINES
-        )
-        val STREAM_CHARS = ShellVerbosity(
-            printRunning = true,
-            printInSequence = CHARS
-        )
+        val START_AND_RAW_OUTPUT =
+            ShellVerbosity(
+                printRunning = true,
+                printRawOutput = true
+            )
+        val START_AND_EXPLAIN_OUTPUT =
+            ShellVerbosity(
+                printRunning = true,
+                explainOutput = true
+            )
+        val STREAM =
+            ShellVerbosity(
+                printRunning = true,
+                printInSequence = LINES
+            )
+        val STREAM_CHARS =
+            ShellVerbosity(
+                printRunning = true,
+                printInSequence = CHARS
+            )
     }
 }
 
@@ -166,21 +150,22 @@ fun interface ShellExecutor {
 
 fun interface ShellExecutorFactory {
     companion object {
-        val DEFAULT = ShellExecutorFactory { saveOutput, verbosity, outLogger, errLogger ->
-            DefaultShellExecutor(
-                saveOutput = saveOutput,
-                verbosity = verbosity,
-                outLogger = outLogger,
-                errLogger = errLogger,
-            )
-        }
+        val DEFAULT =
+            ShellExecutorFactory { saveOutput, verbosity, outLogger, errLogger ->
+                DefaultShellExecutor(
+                    saveOutput = saveOutput,
+                    verbosity = verbosity,
+                    outLogger = outLogger,
+                    errLogger = errLogger
+                )
+            }
     }
 
     fun executor(
         saveOutput: Boolean,
         verbosity: ShellVerbosity,
         outLogger: Prints,
-        errLogger: Prints,
+        errLogger: Prints
     ): ShellExecutor
 }
 
@@ -189,7 +174,7 @@ class DefaultShellExecutor(
     private val saveOutput: Boolean,
     private val verbosity: ShellVerbosity,
     private val outLogger: Prints,
-    private val errLogger: Prints,
+    private val errLogger: Prints
 ) : ShellExecutor {
 
     context(ProcessReaper)
@@ -199,32 +184,35 @@ class DefaultShellExecutor(
         args: Array<out String>,
         inputStream: InputStream?
     ): ShellResult {
-        val p = proc(
-            wd = workingDir,
-            args = args,
-            env = env
-        )
+        val dest =
+            proc(
+                wd = workingDir,
+                args = args,
+                env = env,
+                destroyRecursiveSubprocesses = true
+            )
+        val p = dest.process
 
         var interrupting = false
-        val writerThread = if (inputStream != null) {
-            daemon("input stream transfer") {
-                try {
-                    val out = p.outputStream
-                    while (true) {
-                        val b = inputStream.read()
-                        if (b < 0) break
-                        out.write(b)
-                        out.flush()
+        val writerThread =
+            if (inputStream != null) {
+                daemon("input stream transfer") {
+                    try {
+                        val out = p.outputStream
+                        while (true) {
+                            val b = inputStream.read()
+                            if (b < 0) break
+                            out.write(b)
+                            out.flush()
+                        }
+                    } catch (e: InterruptedException) {
+                        if (!interrupting) throw e
                     }
-                } catch (e: InterruptedException) {
-                    if (!interrupting) throw e
                 }
-
-            }
-        } else null
+            } else null
         try {
-            return p.use {
-                p.await(
+            return dest.use {
+                it.await(
                     verbosity = verbosity,
                     outLogger = outLogger,
                     errLogger = errLogger,
@@ -235,7 +223,6 @@ class DefaultShellExecutor(
             interrupting = true
             writerThread?.interrupt()
         }
-
     }
 }
 
@@ -243,18 +230,18 @@ val ReapingShellExecutionContext.execReturners
     get() = ExecReturners(this)
 
 class ExecReturners(
-    executionContext: ReapingShellExecutionContext,
+    executionContext: ReapingShellExecutionContext
 ) {
     val silent by lazy {
         ExecReturner(
             executionContext = executionContext,
-            verbosity = ShellVerbosity.SILENT,
+            verbosity = ShellVerbosity.SILENT
         )
     }
     val stream by lazy {
         ExecReturner(
             executionContext = executionContext,
-            verbosity = ShellVerbosity.STREAM,
+            verbosity = ShellVerbosity.STREAM
         )
     }
     val streamChars by lazy {
@@ -316,7 +303,6 @@ data class ExecReturner(
                 inputStream = inputStream
             )
         }
-
     }
 }
 
@@ -325,6 +311,7 @@ interface UnControlledCommand<R>
 interface ShellProgram<R> : UnControlledCommand<R>, Commandable<R> {
     override fun sendCommand(vararg args: String): R
 }
+
 
 class SimpleShellProgram<R>(
     private val shell: Commandable<R>,
@@ -338,15 +325,19 @@ class SimpleShellProgram<R>(
 }
 
 class SimpleShellToolbox<R>(
-    val shell: Commandable<R>,
+    val shell: Commandable<R>
 ) : ShellProgram<R> {
     override fun sendCommand(vararg args: String): R = shell.sendCommand(*args)
+}
+
+abstract class AbstractControlledShellProgram<R> {
+    protected abstract fun sendCommand(vararg args: String): R
 }
 
 abstract class ControlledShellProgram<R>(
     private val program: ShellProgram<R>,
     private vararg val programArgs: String
-) {
+): AbstractControlledShellProgram<R>() {
     constructor(
         program: String,
         vararg programArgs: String,
@@ -356,12 +347,12 @@ abstract class ControlledShellProgram<R>(
 
     constructor(
         program: ControlledShellProgram<R>,
-        vararg programArgs: String,
+        vararg programArgs: String
     ) : this(program.program, *program.programArgs, *programArgs)
 
     fun withAdditionalProgramArgs() = program
 
-    protected fun sendCommand(vararg args: String): R = program.sendCommand(*programArgs, *args)
+    final override fun sendCommand(vararg args: String): R = program.sendCommand(*programArgs, *args)
 }
 
 abstract class ControlledShellToolbox<R>(private val program: ShellProgram<R>) {
@@ -379,7 +370,7 @@ fun exec(
 ) = proc(
     wd,
     *args
-).waitFor() == 0
+).process.waitFor() == 0
 
 context(ReapingShellExecutionContext)
 fun <R> shells(
@@ -391,7 +382,7 @@ fun <R> shells(
     executionContext = this@ReapingShellExecutionContext,
     verbosity = verbosity,
     workingDir = workingDir,
-    env = env,
+    env = env
 ).run(op)
 
 context(ReapingShellExecutionContext)
@@ -479,17 +470,18 @@ abstract class ShellRunner<S : ShellResult>(
             if (verbosity.doNotPrintArgs) metaLogger.println("running command (hidden args)")
             else metaLogger.println("running command(${args.size}): ${args.joinToString(" ")}")
         }
-        val result = executorFactory.executor(
-            saveOutput = saveOutput,
-            verbosity = verbosity,
-            outLogger = outLogger,
-            errLogger = errLogger
-        ).execute(
-            workingDir = workingDir,
-            env = env,
-            args = args,
-            inputStream = inputStream
-        )
+        val result =
+            executorFactory.executor(
+                saveOutput = saveOutput,
+                verbosity = verbosity,
+                outLogger = outLogger,
+                errLogger = errLogger
+            ).execute(
+                workingDir = workingDir,
+                env = env,
+                args = args,
+                inputStream = inputStream
+            )
         if (verbosity.explainOutput) metaLogger.println("output: ${(result as? ShellFullResult)?.output}")
 
         if (result.code != 0) {
@@ -498,12 +490,13 @@ abstract class ShellRunner<S : ShellResult>(
                 if (isOk(result as S)) return result
             }
 
-            val report = ShellErrorReport(
-                workingDir = workingDir,
-                env = env,
-                args = args,
-                result = result
-            )
+            val report =
+                ShellErrorReport(
+                    workingDir = workingDir,
+                    env = env,
+                    args = args,
+                    result = result
+                )
 
             throw NonZeroShellResult(
                 result,
@@ -639,7 +632,7 @@ data class ExecStreamer(
                 logger = logger,
                 resultHandler = resultHandler,
                 workingDir = workingDir,
-                env = env,
+                env = env
             )
         }
     }
@@ -648,32 +641,4 @@ data class ExecStreamer(
 val Shell<*>.command get() = executionContext.command
 val ShellExecutionContext.command get() = CommandReturner(this)
 
-class CommandReturner(
-    override val executionContext: ShellExecutionContext
-) : Shell<Command> {
-    override fun sendCommand(vararg args: String) = Command(args.map { it.toString() })
-}
 
-
-@Serializable
-/*value class here would be ideal but this failed with https://youtrack.jetbrains.com/issue/KT-57647/Serialization-IllegalAccessError-Update-to-static-final-field-caused-by-serializable-value-class?s=update-to-static-final-field-attempted-from-a-different-method-constructor-impl-than-the-initializer-method-clinit-when*/
-/*@JvmInline*/
-data /*value*/ class Command(val commands: List<String>) {
-
-    fun rawWithNoEscaping() = commands.joinWithSpaces()
-
-    override fun toString(): String {
-        warn("don't use vague toString()")
-        dumpStack()
-        return rawWithNoEscaping()
-    }
-
-    fun asArray() = commands.toTypedArray()
-
-    infix fun pipedTo(consumer: Command) = Command(commands + "|" + consumer.commands)
-
-    infix fun pipedToFile(file: AnyResolvableFilePath) = Command(commands + ">" + file.path)
-
-    infix fun and(consumer: Command) = Command(commands + "&&" + consumer.commands)
-
-}

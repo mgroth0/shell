@@ -1,12 +1,12 @@
 package matt.shell.commands.apt.aptget
 
-import matt.lang.If
+import matt.lang.common.If
 import matt.lang.function.Dsl
-import matt.log.warn.warn
+import matt.log.warn.common.warn
 import matt.shell.ControlledShellProgram
-import matt.shell.Shell
 import matt.shell.commands.apt.AptLike
 import matt.shell.commands.apt.options.AptOptionsBuilder
+import matt.shell.common.Shell
 
 val <R> Shell<R>.aptGet get() = AptGet(this)
 
@@ -68,15 +68,17 @@ class AptGet<R>(shell: Shell<R>) : ControlledShellProgram<R>(shell = shell, prog
         vararg packages: String,
         autoConfirm: Boolean = DEFAULT_AUTO_CONFIRM,
         autoRemove: Boolean = DEFAULT_AUTO_REMOVE
-    ): R = sendCommand(
-        "purge",
-        *If(autoConfirm).then("-y"),
-        *If(autoRemove).then("--autoremove"),
-        *packages
-    )
+    ): R =
+        sendCommand(
+            "purge",
+            *If(autoConfirm).then("-y"),
+            *If(autoRemove).then("--autoremove"),
+            *packages
+        )
 
-    fun clean(): R = sendCommand(
-        "clean",
-    )
+    fun clean(): R =
+        sendCommand(
+            "clean"
+        )
 }
 

@@ -1,21 +1,48 @@
 {
-  "type": "MultiPlatformModule",
-  "dependencies": [
-    {
-      "type": "Project",
-      "cfg": "jvmMainApi",
-      "path": ":k:stream"
+    "type": "MultiPlatformModule",
+    "dependencies": [
+        {
+            "type": "Project",
+            "cfg": "commonJvmAndroidMainApi",
+            "path": ":k:model"
+        },
+        {
+            "type": "Project",
+            "cfg": "commonMainApi",
+            "path": ":k:log"
+        },
+        {
+            "type": "Project",
+            "cfg": "commonMainApi",
+            "path": ":k:stream"
+        },
+        {
+            "type": "Project",
+            "cfg": "commonMainApi",
+            "path": ":k:service"
+        },
+        {
+            "type": "Project",
+            "cfg": "jvmMainApi",
+            "path": ":k:async:thread"
+        },
+        {
+            "type": "Project",
+            "cfg": "commonJvmAndroidTestImplementation",
+            "path": ":k:test"
+        },
+        {
+            "type": "Project",
+            "cfg": "androidInstrumentedTestImplementation",
+            "path": ":k:test:ainstrument"
+        }
+    ],
+    "android": {
+        "type": "Lib"
     },
-    {
-      "type": "Project",
-      "cfg": "jvmMainApi",
-      "path": ":k:async:thread"
+    "native": {
+        "type": "Lib"
     },
-    {
-      "type": "Project",
-      "cfg": "jvmTestImplementation",
-      "path": ":k:test"
+    "jvm": {
     }
-  ],
-  "jvm": {}
 }

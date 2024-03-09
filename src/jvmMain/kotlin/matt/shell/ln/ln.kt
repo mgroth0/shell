@@ -1,6 +1,6 @@
 package matt.shell.ln
 
-import matt.shell.Shell
+import matt.shell.common.Shell
 
 fun <R> Shell<R>.ln(
     vararg args: String

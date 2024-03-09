@@ -1,4 +1,4 @@
-package matt.shell.context.shell
+package matt.shell.common.context.shell
 
 sealed interface ShellLanguage
 
@@ -10,7 +10,6 @@ sealed interface BourneCompliantShell : BourneLikeShell
 sealed interface PosixCompliantShell : UnixShellLangauge
 sealed interface BashLikeShell : BourneLikeShell
 
-//data object UnknownBourneLikeShell : BourneLikeShell /*default Linux shell can be Bash or Dash*/
 
 data object Bash : BashLikeShell
 data object BashPosixMode : BashLikeShell, PosixCompliantShell

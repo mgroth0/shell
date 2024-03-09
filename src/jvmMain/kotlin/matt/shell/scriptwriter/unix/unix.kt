@@ -1,10 +1,10 @@
 package matt.shell.scriptwriter.unix
 
 import matt.lang.assertions.require.requireIs
-import matt.lang.inList
+import matt.lang.common.inList
 import matt.prim.str.joinWithSpaces
-import matt.shell.Command
-import matt.shell.context.escape.EscapeStrategy
+import matt.shell.common.Command
+import matt.shell.commonj.context.escape.EscapeStrategy
 import matt.shell.scriptwriter.ScriptWriter
 import matt.shell.scriptwriter.ScriptWriterContext
 import matt.shell.scriptwriter.unix.ShExecutor.binBash
@@ -37,7 +37,7 @@ enum class ShExecutor(val path: String) : Shebang {
 
 
 abstract class UnixShell(
-    escapeStrategy: EscapeStrategy,
+    escapeStrategy: EscapeStrategy
 ) : ScriptWriter(escapeStrategy), UnixWriterContext {
 
     private var wroteShebang = false
@@ -45,10 +45,11 @@ abstract class UnixShell(
     @Synchronized
     fun shebang(loader: Shebang) {
         when (loader) {
-            is ShExecutor -> when (loader) {
-                binBash   -> requireIs<BashWriter>(this)
-                usrBinEnv -> error("I think this requires args")
-            }
+            is ShExecutor ->
+                when (loader) {
+                    binBash   -> requireIs<BashWriter>(this)
+                    usrBinEnv -> error("I think this requires args")
+                }
 
             is EnvShebang -> Unit
         }
@@ -69,5 +70,4 @@ abstract class UnixShell(
     final override fun createJob(command: Command) {
         addRawLines(command.rawWithNoEscaping() + " &")
     }
-
 }

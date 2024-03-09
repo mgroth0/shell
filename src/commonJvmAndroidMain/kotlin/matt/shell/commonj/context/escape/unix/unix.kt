@@ -1,25 +1,26 @@
-package matt.shell.context.escape.unix
+package matt.shell.commonj.context.escape.unix
 
 import matt.lang.anno.SeeURL
 import matt.lang.anno.optin.IncubatingMattCode
-import matt.shell.context.escape.EscapeContext
+import matt.shell.commonj.context.escape.EscapeContext
 
 
 @SeeURL("https://stackoverflow.com/a/6697781/6596010")
 @IncubatingMattCode(basicWorkNeeded = "try to make it work in all cases")
 object UnixEscapeUnquotedStringContext : EscapeContext {
     override val escapeChar = '\\'
-    override val charsToEscape = listOf(
-        ' ',
+    override val charsToEscape =
+        listOf(
+            ' ',
 
-        /*yes curly braces were causing bugs.. Open a terminal and write 'echo {a,b}'*/
-        '{',
-        '}',
+            /*yes curly braces were causing bugs.. Open a terminal and write 'echo {a,b}'*/
+            '{',
+            '}',
 
-        '"',
-        '\\',
-        '$',
-    )
+            '"',
+            '\\',
+            '$'
+        )
 }
 
 
@@ -27,9 +28,10 @@ object UnixEscapeUnquotedStringContext : EscapeContext {
 @IncubatingMattCode(basicWorkNeeded = "try to make it work in all cases")
 object UnixEscapeDoubleQuotedStringContext : EscapeContext {
     override val escapeChar = '\\'
-    override val charsToEscape = listOf(
-        '"',
-        '\\',
-        '$',
-    )
+    override val charsToEscape =
+        listOf(
+            '"',
+            '\\',
+            '$'
+        )
 }

@@ -1,8 +1,8 @@
 package matt.shell.commands.brew
 
-import matt.lang.If
+import matt.lang.common.If
 import matt.shell.ControlledShellProgram
-import matt.shell.Shell
+import matt.shell.common.Shell
 
 
 val <R> Shell<R>.brew get() = BrewCommand(this)
@@ -15,7 +15,7 @@ class BrewCommand<R>(shell: Shell<R>) : ControlledShellProgram<R>(
     fun install(
         formula: String,
         vararg options: String,
-        cask: Boolean = false,
+        cask: Boolean = false
     ) = sendCommand(
         "install", *If(cask).then("--cask"), formula, *options
     )

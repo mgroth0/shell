@@ -1,11 +1,11 @@
 package matt.shell.commands.java
 
-import matt.lang.classname.JvmQualifiedClassName
+import matt.lang.classname.common.JvmQualifiedClassName
+import matt.lang.common.optArray
 import matt.lang.model.file.AnyResolvableFilePath
-import matt.lang.optArray
 import matt.model.code.jvm.JavaExecArgs
 import matt.shell.ControlledShellProgram
-import matt.shell.Shell
+import matt.shell.common.Shell
 
 val <R> Shell<R>.java get() = JavaCommand(this)
 
@@ -55,5 +55,4 @@ class JavaCommand<R>(shell: Shell<R>) : ControlledShellProgram<R>(
         *executionArgs,
         *commandLineArgs
     )
-
 }

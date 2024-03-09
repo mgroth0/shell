@@ -1,16 +1,16 @@
 package matt.shell.scriptwriter.unix.bash
 
 import matt.lang.anno.SeeURL
-import matt.shell.context.ShellExecutionContext
-import matt.shell.context.escape.EscapeStrategy
-import matt.shell.context.shell.Bash
+import matt.shell.common.context.ShellExecutionContext
+import matt.shell.common.context.shell.Bash
+import matt.shell.commonj.context.escape.EscapeStrategy
 import matt.shell.scriptwriter.unix.UnixShell
 import matt.shell.scriptwriter.unix.UnixWriterContext
 
 const val SANE_BASH_CONFIG_DEFAULT = true
 
 interface BashWriterContext : UnixWriterContext {
-    fun bashWhile(
+    fun `while`(
         condition: String,
         op: BashLoopContext.() -> Unit
     )
@@ -43,10 +43,12 @@ interface BashWriterContext : UnixWriterContext {
 class BashWriter(
     override val executionContext: ShellExecutionContext,
     escapeStrategy: EscapeStrategy,
-    @SeeURL("https://stackoverflow.com/questions/821396/aborting-a-shell-script-if-any-command-returns-a-non-zero-value") private val saneBashConfig: Boolean = SANE_BASH_CONFIG_DEFAULT
+    @SeeURL("https://stackoverflow.com/questions/821396/aborting-a-shell-script-if-any-command-returns-a-non-zero-value")
+    private val saneBashConfig: Boolean = SANE_BASH_CONFIG_DEFAULT
 ) : UnixShell(
         escapeStrategy = escapeStrategy
-    ), BashWriterContext {
+    ),
+    BashWriterContext {
 
     fun setSaneConfig() = addRawLines("set -Eueo pipefail")
 
@@ -58,8 +60,7 @@ class BashWriter(
     }
 
 
-    /*used to be `while`, but that was a buggy compilation error n 2.0.0-Beta1*/
-    override fun bashWhile(
+    override fun `while`(
         condition: String,
         op: BashLoopContext.() -> Unit
     ) {

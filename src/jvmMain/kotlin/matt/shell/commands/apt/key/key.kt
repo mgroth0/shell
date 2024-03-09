@@ -1,7 +1,7 @@
 package matt.shell.commands.apt.key
 
 import matt.shell.ControlledShellProgram
-import matt.shell.Shell
+import matt.shell.common.Shell
 
 val <R> Shell<R>.aptKey get() = AptKey(this)
 

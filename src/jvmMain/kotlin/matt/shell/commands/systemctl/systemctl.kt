@@ -1,7 +1,7 @@
 package matt.shell.commands.systemctl
 
 import matt.shell.ControlledShellProgram
-import matt.shell.Shell
+import matt.shell.common.Shell
 
 
 val <R> Shell<R>.systemctl get() = SystemCtl(this)

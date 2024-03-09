@@ -1,14 +1,14 @@
 package matt.shell.commands.apt
 
-import matt.lang.If
+import matt.lang.common.If
 import matt.lang.function.Dsl
-import matt.log.warn.warn
+import matt.log.warn.common.warn
 import matt.shell.ControlledShellProgram
-import matt.shell.Shell
 import matt.shell.commands.apt.aptget.AptGet.Companion.DEFAULT_AUTO_CONFIRM
 import matt.shell.commands.apt.aptget.AptGet.Companion.DEFAULT_AUTO_REMOVE
 import matt.shell.commands.apt.aptget.AptGet.Companion.DEFAULT_FIX_MISSING
 import matt.shell.commands.apt.options.AptOptionsBuilder
+import matt.shell.common.Shell
 
 interface LinuxPackageManager
 interface AptLike : LinuxPackageManager
@@ -58,7 +58,7 @@ class Apt<R>(shell: Shell<R>) : ControlledShellProgram<R>(program = "apt", shell
     fun purge(
         vararg packages: String,
         autoRemove: Boolean = DEFAULT_AUTO_REMOVE,
-        autoConfirm: Boolean = DEFAULT_AUTO_CONFIRM,
+        autoConfirm: Boolean = DEFAULT_AUTO_CONFIRM
     ) = sendCommand(
         "purge",
         *If(autoRemove).then("--autoremove"),

@@ -2,7 +2,7 @@ package matt.shell.report
 
 import matt.lang.model.file.AnyResolvableFilePath
 import matt.log.textart.TEXT_BAR
-import matt.model.code.errreport.Report
+import matt.model.code.errreport.common.Report
 import matt.prim.str.elementsToString
 import matt.prim.str.joinWithSpaces
 import matt.prim.str.mybuild.api.string
@@ -53,7 +53,6 @@ class ShellErrorReport(
             }
         }
     }
-
 }
 
 class NonZeroShellResult(
@@ -65,7 +64,7 @@ class NonZeroShellResult(
 }
 
 open class ShellResult(
-    val code: Int,
+    val code: Int
 )
 
 class ShellFullResult(

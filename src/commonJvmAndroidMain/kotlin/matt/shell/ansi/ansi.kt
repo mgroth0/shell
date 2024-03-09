@@ -1,7 +1,7 @@
 package matt.shell.ansi
 
-import matt.log.NOPLogger
-import matt.log.SystemOutLogger
+import matt.log.j.NOPLogger
+import matt.log.j.SystemOutLogger
 import matt.log.logger.Logger
 import matt.stream.ansi.AnsiColor
 

@@ -1,15 +1,15 @@
 package matt.shell.spawner
 
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.launch
 import matt.async.thread.namedThread
+import matt.lang.function.SuspendOp
 import matt.lang.model.file.types.AnyFolder
+import matt.lang.shutdown.preaper.ProcessDestiny
 import matt.model.code.output.OutputType
 import matt.model.code.output.OutputType.STDERR
 import matt.model.code.output.OutputType.STDOUT
 import matt.prim.str.strings
 import matt.shell.ConfigurableShell
-import matt.shell.context.ReapingShellExecutionContext
+import matt.shell.commonj.context.ReapingShellExecutionContext
 import matt.shell.proc.proc
 import matt.shell.proc.signal.ProcessKillSignal.SIGKILL
 import matt.shell.proc.signal.kill
@@ -18,20 +18,24 @@ import java.io.InputStream
 import java.io.OutputStream
 import kotlin.time.Duration
 
+val ReapingShellExecutionContext.processSpawner get() = ExecProcessSpawner(this)
+
 data class ExecProcessSpawner(
     override val executionContext: ReapingShellExecutionContext,
     private val throwOnErr: Boolean = false,
     val workingDir: AnyFolder? = null,
     val env: Map<String, String> = mapOf(),
     val timeout: Duration? = null
-) : ConfigurableShell<Process, ExecProcessSpawner> {
+) : ConfigurableShell<ProcessDestiny, ExecProcessSpawner> {
 
-    override fun sendCommand(vararg args: String): Process {
-        val p = with(executionContext) {
-            proc(
-                wd = workingDir, env = env, args = (args.strings())
-            )
-        }
+    override fun sendCommand(vararg args: String): ProcessDestiny {
+        val dest =
+            with(executionContext) {
+                proc(
+                    wd = workingDir, env = env, args = (args.strings())
+                )
+            }
+        val p = dest.process
         if (timeout != null) {
             namedThread(name = "timeoutExecutor") {
                 Thread.sleep(timeout.inWholeMilliseconds)
@@ -53,7 +57,7 @@ data class ExecProcessSpawner(
                 }
             }
         }
-        return p
+        return dest
     }
 
     override fun doNotPrintCommand(op: ExecProcessSpawner.() -> Unit): ExecProcessSpawner = this
@@ -91,8 +95,13 @@ fun Process.transferAllOutputToStdOutInThreads(
     }
 }
 
+/*avoid kotlinx.coroutines dependency*/
+interface SuspendLaunchingScope {
+    fun launch(op: SuspendOp)
+}
+
 fun Process.transferAllOutputToStdOutInJobs(
-    scope: CoroutineScope,
+    scope: SuspendLaunchingScope,
     errTo: OutputType,
     buffered: Boolean = true
 ) {
@@ -112,7 +121,6 @@ fun Process.transferAllOutputToStdOutInJobs(
                 }
             )
         }
-
     }
     scope.launch {
         if (buffered) {
@@ -120,7 +128,6 @@ fun Process.transferAllOutputToStdOutInJobs(
         } else {
             inputStream.transferToUnBuffered(System.out)
         }
-
     }
 }
 

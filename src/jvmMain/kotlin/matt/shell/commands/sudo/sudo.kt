@@ -1,7 +1,7 @@
 package matt.shell.commands.sudo
 
-import matt.shell.Shell
-import matt.shell.context.ShellExecutionContext
+import matt.shell.common.Shell
+import matt.shell.common.context.ShellExecutionContext
 
 
 fun <R> Shell<R>.sudo(

@@ -1,6 +1,6 @@
 package matt.shell.proc.signal
 
-import matt.shell.context.ReapingShellExecutionContext
+import matt.shell.commonj.context.ReapingShellExecutionContext
 import matt.shell.proc.pid.myPid
 import matt.shell.proc.signal.ProcessKillSignal.SIGINT
 import matt.shell.proc.signal.ProcessKillSignal.SIGKILL

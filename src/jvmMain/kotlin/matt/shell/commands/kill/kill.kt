@@ -1,8 +1,8 @@
 package matt.shell.commands.kill
 
-import matt.lang.opt
-import matt.log.warn.warn
-import matt.shell.Shell
+import matt.lang.common.opt
+import matt.log.warn.common.warn
+import matt.shell.common.Shell
 import matt.shell.proc.pid.Pid
 import matt.shell.proc.signal.ProcessKillSignal
 

@@ -1,6 +1,6 @@
 package matt.shell.dispatch
 
-import matt.shell.Shell
+import matt.shell.common.Shell
 
 interface ShellScriptDispatcher<SH : Shell<*>> {
     fun dispatch(script: SH.() -> Unit)

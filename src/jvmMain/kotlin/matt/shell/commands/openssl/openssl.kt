@@ -2,7 +2,7 @@ package matt.shell.commands.openssl
 
 import matt.lang.model.file.AnyFsFile
 import matt.shell.ControlledShellProgram
-import matt.shell.Shell
+import matt.shell.common.Shell
 
 
 val <R> Shell<R>.openSsl get() = OpenSslCommand(this)
@@ -68,7 +68,5 @@ class OpenSslCommand<R>(shell: Shell<R>) : ControlledShellProgram<R>(
         "-out",
         outputCertFile.path
     )
-
-
 }
 

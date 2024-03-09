@@ -4,8 +4,8 @@ import kotlinx.serialization.json.internal.FormatLanguage
 import matt.model.code.CodeGenerator
 import matt.model.code.SimpleFormatCode
 import matt.prim.str.joinWithSpaces
-import matt.shell.Shell
-import matt.shell.context.escape.EscapeStrategy
+import matt.shell.common.Shell
+import matt.shell.commonj.context.escape.EscapeStrategy
 
 interface ScriptWriterContext : Shell<Unit> {
     fun addRawLines(vararg lines: String, index: Int? = null)
@@ -14,7 +14,7 @@ interface ScriptWriterContext : Shell<Unit> {
 
 
 abstract class ScriptWriter(
-    private val escapeStrategy: EscapeStrategy,
+    private val escapeStrategy: EscapeStrategy
 ) : ScriptWriterContext, CodeGenerator<ShellScript> {
 
 
@@ -25,9 +25,10 @@ abstract class ScriptWriter(
 
 
     final override fun sendCommand(vararg args: String) {
-        scriptLinesM += args.joinWithSpaces {
-            escapeStrategy.escape(it)
-        }
+        scriptLinesM +=
+            args.joinWithSpaces {
+                escapeStrategy.escape(it)
+            }
     }
 
 
@@ -38,7 +39,7 @@ abstract class ScriptWriter(
     }
 
 
-    private var lineDelimiter = "\n"
+    private val lineDelimiter = "\n"
 
     val script get() = scriptLinesM.joinToString(separator = lineDelimiter) { it }
 
@@ -48,7 +49,9 @@ abstract class ScriptWriter(
 
 
 
-class ShellScript(@FormatLanguage("Shell Script", "", "")  override val code: String) : SimpleFormatCode<ShellScript> {
+class ShellScript(
+    @FormatLanguage("Shell Script", "", "") override val code: String
+) : SimpleFormatCode<ShellScript> {
     override fun formatted(): ShellScript {
         TODO()
     }

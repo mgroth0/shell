@@ -1,11 +1,11 @@
 package matt.shell.commands.rediscli
 
 import matt.collect.itr.flatMapToArray
+import matt.lang.common.optArray
 import matt.lang.model.file.AnyFsFile
-import matt.lang.optArray
 import matt.model.redis.RedisConfigurationPatch
 import matt.shell.ControlledShellProgram
-import matt.shell.Shell
+import matt.shell.common.Shell
 
 private val DEFAULT_PW = null
 private val DEFAULT_TLS = null
@@ -64,8 +64,6 @@ class RedisCliCommand<R : Any>(
         },
         * command
     )
-
-
 }
 
 

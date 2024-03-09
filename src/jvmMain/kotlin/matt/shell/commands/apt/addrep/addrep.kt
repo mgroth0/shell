@@ -1,6 +1,7 @@
 package matt.shell.commands.apt.addrep
 
-import matt.shell.Shell
+import matt.shell.common.Shell
+
 
 val <R> Shell<R>.aptAddRepository get() = AptAddRepository(this)
 

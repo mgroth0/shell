@@ -1,11 +1,12 @@
-package matt.shell.commands.cp
+package matt.shell.common.commands.cp
 
-import matt.lang.If
 import matt.lang.anno.SeeURL
+import matt.lang.common.If
 import matt.lang.model.file.AnyFsFile
-import matt.shell.Shell
+import matt.shell.common.Shell
 
 
+/*REMINDER: I am using mac cp, not gnu copy (which who knows, might be slower) so --target-directory isn't an option. there may be an equivalent flag but i could not find it*/
 @SeeURL("https://unix.stackexchange.com/questions/228597/how-to-copy-a-folder-recursively-in-an-idempotent-way-using-cp")
 fun <R> Shell<R>.cp(
     from: AnyFsFile,
