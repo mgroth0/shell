@@ -1,14 +1,14 @@
 package matt.shell.spawner
 
 import matt.async.thread.namedThread
+import matt.file.model.file.types.AnyFolder
 import matt.lang.function.SuspendOp
-import matt.lang.model.file.types.AnyFolder
 import matt.lang.shutdown.preaper.ProcessDestiny
 import matt.model.code.output.OutputType
 import matt.model.code.output.OutputType.STDERR
 import matt.model.code.output.OutputType.STDOUT
 import matt.prim.str.strings
-import matt.shell.ConfigurableShell
+import matt.shell.ConfigurableInPlaceShell
 import matt.shell.commonj.context.ReapingShellExecutionContext
 import matt.shell.proc.proc
 import matt.shell.proc.signal.ProcessKillSignal.SIGKILL
@@ -26,7 +26,14 @@ data class ExecProcessSpawner(
     val workingDir: AnyFolder? = null,
     val env: Map<String, String> = mapOf(),
     val timeout: Duration? = null
-) : ConfigurableShell<ProcessDestiny, ExecProcessSpawner> {
+) : ConfigurableInPlaceShell<ProcessDestiny, ExecProcessSpawner> {
+
+    override fun withInputStream(inputStream: InputStream?): ExecProcessSpawner {
+        if (inputStream != null) {
+            TODO("Not yet implemented")
+        }
+        return this
+    }
 
     override fun sendCommand(vararg args: String): ProcessDestiny {
         val dest =

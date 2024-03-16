@@ -3,10 +3,10 @@ package matt.shell
 
 import kotlinx.serialization.Serializable
 import matt.async.thread.daemon
+import matt.file.model.file.types.AnyFolder
 import matt.lang.assertions.require.requireNot
 import matt.lang.common.go
 import matt.lang.model.file.AnyResolvableFilePath
-import matt.lang.model.file.types.AnyFolder
 import matt.lang.shutdown.preaper.ProcessReaper
 import matt.lang.shutdown.preaper.use
 import matt.log.j.DefaultLogger
@@ -24,7 +24,8 @@ import matt.shell.common.ShellDSL
 import matt.shell.common.context.ShellExecutionContext
 import matt.shell.commonj.CommandReturner
 import matt.shell.commonj.context.ReapingShellExecutionContext
-import matt.shell.proc.await
+import matt.shell.proc.awaitWhileSavingOutput
+import matt.shell.proc.awaitWithoutSavingOutput
 import matt.shell.proc.proc
 import matt.shell.report.NonZeroShellResult
 import matt.shell.report.ShellErrorReport
@@ -74,6 +75,11 @@ interface ShellConfigurator<T : ShellConfigurator<T>> : ConfigurableWorkingDir<T
 
     fun doNotPrintCommand(op: T.() -> Unit = {}): T
 }
+@ShellDSL
+interface InPlaceShellConfigurator<T: InPlaceShellConfigurator<T>>: ShellConfigurator<T>  {
+    fun withInputStream(inputStream: InputStream?): T
+}
+
 
 fun <T : ShellConfigurator<T>> ShellConfigurator<T>.withEnv(
     vararg pairs: Pair<String, String>,
@@ -91,9 +97,10 @@ fun <T : ShellConfigurator<T>> ShellConfigurator<T>.withUpdatedEnv(
 
 
 interface ConfigurableShell<R, T : ConfigurableShell<R, T>> : Shell<R>, ShellConfigurator<T>
+interface ConfigurableInPlaceShell<R, T : ConfigurableInPlaceShell<R, T>> : Shell<R>, InPlaceShellConfigurator<T>, ConfigurableShell<R, T>
 
 
-class ShellResultHandler<S : ShellResult>(
+class ShellResultHandler<in S : ShellResult>(
     val nonZeroOkIf: (S) -> Boolean
 )
 
@@ -137,23 +144,30 @@ data class ShellVerbosity(
     }
 }
 
-fun interface ShellExecutor {
+fun interface ShellExecutor<out S: ShellResult> {
     context(ProcessReaper)
     fun execute(
         workingDir: AnyResolvableFilePath?,
         env: Map<String, String>,
         args: Array<out String>,
         inputStream: InputStream?
-    ): ShellResult
+    ): S
 }
 
 
-fun interface ShellExecutorFactory {
+fun interface ShellExecutorFactory<out S: ShellResult> {
     companion object {
-        val DEFAULT =
-            ShellExecutorFactory { saveOutput, verbosity, outLogger, errLogger ->
-                DefaultShellExecutor(
-                    saveOutput = saveOutput,
+        val DEFAULT_SAVING_OUTPUT =
+            ShellExecutorFactory { verbosity, outLogger, errLogger ->
+                DefaultOutputSavingShellExecutor(
+                    verbosity = verbosity,
+                    outLogger = outLogger,
+                    errLogger = errLogger
+                )
+            }
+        val DEFAULT_NOT_SAVING_OUTPUT =
+            ShellExecutorFactory { verbosity, outLogger, errLogger ->
+                DefaultOutputNotSavingShellExecutor(
                     verbosity = verbosity,
                     outLogger = outLogger,
                     errLogger = errLogger
@@ -162,28 +176,43 @@ fun interface ShellExecutorFactory {
     }
 
     fun executor(
-        saveOutput: Boolean,
         verbosity: ShellVerbosity,
         outLogger: Prints,
         errLogger: Prints
-    ): ShellExecutor
+    ): ShellExecutor<S>
 }
 
 
-class DefaultShellExecutor(
-    private val saveOutput: Boolean,
-    private val verbosity: ShellVerbosity,
-    private val outLogger: Prints,
-    private val errLogger: Prints
-) : ShellExecutor {
+class DefaultOutputSavingShellExecutor(
+    verbosity: ShellVerbosity,
+    outLogger: Prints,
+    errLogger: Prints
+): DefaultShellExecutor<ShellFullResult>(verbosity = verbosity, outLogger = outLogger, errLogger = errLogger)  {
+    override fun Process.awaitTheRightWay(): ShellFullResult = awaitWhileSavingOutput(verbosity = verbosity, outLogger = outLogger, errLogger = errLogger)
+}
+class DefaultOutputNotSavingShellExecutor(
+    verbosity: ShellVerbosity,
+    outLogger: Prints,
+    errLogger: Prints
+): DefaultShellExecutor<ShellResult>(verbosity = verbosity, outLogger = outLogger, errLogger = errLogger)  {
+    override fun Process.awaitTheRightWay(): ShellResult = awaitWithoutSavingOutput(verbosity = verbosity, outLogger = outLogger, errLogger = errLogger)
+}
+
+abstract class DefaultShellExecutor<S: ShellResult>(
+    protected val verbosity: ShellVerbosity,
+    protected val outLogger: Prints,
+    protected val errLogger: Prints
+) : ShellExecutor<S> {
+
+    protected abstract fun Process.awaitTheRightWay(): S
 
     context(ProcessReaper)
-    override fun execute(
+    final override fun execute(
         workingDir: AnyResolvableFilePath?,
         env: Map<String, String>,
         args: Array<out String>,
         inputStream: InputStream?
-    ): ShellResult {
+    ): S {
         val dest =
             proc(
                 wd = workingDir,
@@ -212,12 +241,7 @@ class DefaultShellExecutor(
             } else null
         try {
             return dest.use {
-                it.await(
-                    verbosity = verbosity,
-                    outLogger = outLogger,
-                    errLogger = errLogger,
-                    saveOutput = saveOutput
-                )
+                it.awaitTheRightWay()
             }
         } finally {
             interrupting = true
@@ -262,7 +286,9 @@ data class ExecReturner(
     private val metaLogger: Prints = outLogger,
     private val resultHandler: ShellResultHandler<ShellFullResult>? = null,
     private val inputStream: InputStream? = null
-) : DirectableShell<String, ExecReturner>, ConfigurableShell<String, ExecReturner> {
+) : DirectableShell<String, ExecReturner>, ConfigurableInPlaceShell<String, ExecReturner> {
+
+    override fun withInputStream(inputStream: InputStream?): ExecReturner = copy(inputStream = inputStream)
 
     override fun withEnv(
         env: Map<String, String>,
@@ -398,7 +424,7 @@ fun shell(
     outLogger: Prints = DefaultLogger,
     errLogger: Prints = DefaultLogger,
     metaLogger: Prints = outLogger,
-    executorFactory: ShellExecutorFactory = ShellExecutorFactory.DEFAULT,
+    executorFactory: ShellExecutorFactory<ShellFullResult> = ShellExecutorFactory.DEFAULT_SAVING_OUTPUT,
     resultHandler: ShellResultHandler<ShellFullResult>? = null,
     inputStream: InputStream? = null
 ) = FullResultShellRunner(
@@ -451,7 +477,7 @@ fun streamingMemorySafeShell(
 ).run()
 
 
-abstract class ShellRunner<S : ShellResult>(
+abstract class ShellRunner<S: ShellResult>(
     private vararg val args: String,
     private val workingDir: AnyFolder? = null,
     private val env: Map<String, String> = mapOf(),
@@ -459,11 +485,10 @@ abstract class ShellRunner<S : ShellResult>(
     private val outLogger: Prints = DefaultLogger,
     private val errLogger: Prints = DefaultLogger,
     private val metaLogger: Prints = outLogger,
-    private val executorFactory: ShellExecutorFactory = ShellExecutorFactory.DEFAULT,
+    private val executorFactory: ShellExecutorFactory<S>,
     private val resultHandler: ShellResultHandler<S>? = null,
     private val inputStream: InputStream?
 ) {
-    protected abstract val saveOutput: Boolean
     context(ProcessReaper)
     fun run(): S {
         if (verbosity.printRunning) {
@@ -472,7 +497,6 @@ abstract class ShellRunner<S : ShellResult>(
         }
         val result =
             executorFactory.executor(
-                saveOutput = saveOutput,
                 verbosity = verbosity,
                 outLogger = outLogger,
                 errLogger = errLogger
@@ -486,8 +510,8 @@ abstract class ShellRunner<S : ShellResult>(
 
         if (result.code != 0) {
             resultHandler?.nonZeroOkIf?.go { isOk ->
-                @Suppress("UNCHECKED_CAST")
-                if (isOk(result as S)) return result
+
+                if (isOk(result)) return result
             }
 
             val report =
@@ -503,8 +527,8 @@ abstract class ShellRunner<S : ShellResult>(
                 report
             )
         }
-        @Suppress("UNCHECKED_CAST")
-        return result as S
+
+        return result
     }
 }
 
@@ -524,13 +548,12 @@ class MemSafeShellRunner(
         outLogger = logger,
         errLogger = logger,
         resultHandler = resultHandler,
-        inputStream = inputStream
+        inputStream = inputStream,
+        executorFactory = ShellExecutorFactory.DEFAULT_NOT_SAVING_OUTPUT
     ) {
     init {
         requireNot(verbosity.explainOutput)
     }
-
-    override val saveOutput = false
 }
 
 class FullResultShellRunner(
@@ -541,7 +564,7 @@ class FullResultShellRunner(
     errLogger: Prints = DefaultLogger,
     outLogger: Prints = DefaultLogger,
     metaLogger: Prints = outLogger,
-    executorFactory: ShellExecutorFactory = ShellExecutorFactory.DEFAULT,
+    executorFactory: ShellExecutorFactory<ShellFullResult> = ShellExecutorFactory.DEFAULT_SAVING_OUTPUT,
     resultHandler: ShellResultHandler<ShellFullResult>? = null,
     inputStream: InputStream?
 ) : ShellRunner<ShellFullResult>(
@@ -555,9 +578,7 @@ class FullResultShellRunner(
         resultHandler = resultHandler,
         executorFactory = executorFactory,
         inputStream = inputStream
-    ) {
-    override val saveOutput = true
-}
+    )
 
 context (ProcessReaper)
 val ShellExecutionContext.execStreamers
@@ -598,7 +619,12 @@ data class ExecStreamer(
     private val logger: Prints = SystemOutLogger.apply { includeTimeInfo = false },
     private val resultHandler: ShellResultHandler<ShellResult>? = null,
     private val processReaper: ProcessReaper
-) : DirectableShell<ShellResult, ExecStreamer>, ConfigurableShell<ShellResult, ExecStreamer> {
+
+) : DirectableShell<ShellResult, ExecStreamer>, ConfigurableInPlaceShell<ShellResult, ExecStreamer> {
+
+    override fun withInputStream(inputStream: InputStream?): ExecStreamer {
+        TODO("Not yet implemented")
+    }
 
     override fun withEnv(
         env: Map<String, String>,

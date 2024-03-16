@@ -56,12 +56,17 @@ fun proc(
     }
 }
 
-
 internal fun Process.await(
     verbosity: ShellVerbosity,
     outLogger: Prints = DefaultLogger,
     errLogger: Prints = DefaultLogger,
     saveOutput: Boolean
+): ShellResult = if (saveOutput) awaitWhileSavingOutput(verbosity = verbosity, outLogger = outLogger, errLogger = errLogger) else awaitWithoutSavingOutput(verbosity = verbosity, outLogger = outLogger, errLogger = errLogger)
+
+internal fun Process.awaitWithoutSavingOutput(
+    verbosity: ShellVerbosity,
+    outLogger: Prints = DefaultLogger,
+    errLogger: Prints = DefaultLogger
 ): ShellResult {
 
     /*
@@ -69,25 +74,6 @@ internal fun Process.await(
         - stdout and stderr can block each other (I guess if some buffer reaches a capacity?).
         - Therefore, they must be read in separate threads.
      */
-
-    var err = ""
-    var out = ""
-
-    fun savingInputOp(
-        reader: BufferedReader,
-        streamLogger: Prints
-    ) = when (verbosity.printInSequence) {
-        NO    -> reader.readText()
-        LINES ->
-            reader.lineSequence().onEach {
-                streamLogger.println(it)
-            }.joinToString("\n")
-
-        CHARS ->
-            reader.charSequence().onEach {
-                streamLogger.print(it)
-            }.joinToString("")
-    }
 
     fun inputOp(
         reader: BufferedReader,
@@ -111,20 +97,66 @@ internal fun Process.await(
     val t =
         namedThread(name = "errorReader") {
             if (verbosity.outBeforeErr) latch.await()
-            if (saveOutput) err = savingInputOp(errorReader(), errLogger)
-            else inputOp(errorReader(), errLogger)
+            inputOp(errorReader(), errLogger)
         }
     try {
-        if (saveOutput) out = savingInputOp(inputReader(), outLogger)
-        else inputOp(inputReader(), outLogger)
+        inputOp(inputReader(), outLogger)
     } finally {
         latch.open()
     }
     t.join()
     val code = waitFor()
 
-    return if (saveOutput) ShellFullResult(code = code, std = out, err = err)
-    else ShellResult(code = code)
+    return ShellResult(code = code)
+}
+
+
+internal fun Process.awaitWhileSavingOutput(
+    verbosity: ShellVerbosity,
+    outLogger: Prints = DefaultLogger,
+    errLogger: Prints = DefaultLogger
+): ShellFullResult {
+
+    /*
+    Reminder:
+        - stdout and stderr can block each other (I guess if some buffer reaches a capacity?).
+        - Therefore, they must be read in separate threads.
+     */
+
+    var err = ""
+    val out: String
+
+    fun savingInputOp(
+        reader: BufferedReader,
+        streamLogger: Prints
+    ) = when (verbosity.printInSequence) {
+        NO    -> reader.readText()
+        LINES ->
+            reader.lineSequence().onEach {
+                streamLogger.println(it)
+            }.joinToString("\n")
+
+        CHARS ->
+            reader.charSequence().onEach {
+                streamLogger.print(it)
+            }.joinToString("")
+    }
+
+    val latch = SimpleThreadLatch()
+    val t =
+        namedThread(name = "errorReader") {
+            if (verbosity.outBeforeErr) latch.await()
+            err = savingInputOp(errorReader(), errLogger)
+        }
+    try {
+        out = savingInputOp(inputReader(), outLogger)
+    } finally {
+        latch.open()
+    }
+    t.join()
+    val code = waitFor()
+
+    return ShellFullResult(code = code, std = out, err = err)
 }
 
 fun Process.forEachOutChar(op: Consume<String>) = inputReader().forEachChar(op)
