@@ -623,7 +623,10 @@ data class ExecStreamer(
 ) : DirectableShell<ShellResult, ExecStreamer>, ConfigurableInPlaceShell<ShellResult, ExecStreamer> {
 
     override fun withInputStream(inputStream: InputStream?): ExecStreamer {
-        TODO("Not yet implemented")
+        if (inputStream != null) {
+            TODO("Not yet implemented")
+        }
+        return this
     }
 
     override fun withEnv(

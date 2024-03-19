@@ -1,5 +1,6 @@
 package matt.shell.scriptwriter
 
+import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.json.internal.FormatLanguage
 import matt.model.code.CodeGenerator
 import matt.model.code.SimpleFormatCode
@@ -49,7 +50,7 @@ abstract class ScriptWriter(
 
 
 
-class ShellScript(
+class ShellScript @OptIn(InternalSerializationApi::class) constructor(
     @FormatLanguage("Shell Script", "", "") override val code: String
 ) : SimpleFormatCode<ShellScript> {
     override fun formatted(): ShellScript {
